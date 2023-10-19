@@ -365,9 +365,6 @@ public:
     template<typename Return, typename... Args>
     GAny(Return (*f)(Args...), const std::string &doc = "");
 
-    template<typename Func>
-    static GAny lambda(Func &&f);
-
     template<typename Return, typename Class, typename... arg>
     GAny(Return (Class::*f)(arg...), const std::string &doc = "");
 
@@ -1130,25 +1127,25 @@ public:
     template<typename Func>
     GAnyClass &func(const std::string &name, Func &&f, const std::string &doc = "")
     {
-        return func(name, GAny::lambda(f), doc, true);
+        return func(name, GAnyFunction(f), doc, true);
     }
 
     template<typename Func>
     GAnyClass &func(MetaFunction metaFunc, Func &&f, const std::string &doc = "")
     {
-        return func(metaFunctionNames()[(size_t) metaFunc], GAny::lambda(f), doc, true);
+        return func(metaFunctionNames()[(size_t) metaFunc], GAnyFunction(f), doc, true);
     }
 
     template<typename Func>
     GAnyClass &staticFunc(const std::string &name, Func &&f, const std::string &doc = "")
     {
-        return func(name, GAny::lambda(f), doc, false);
+        return func(name, GAnyFunction(f), doc, false);
     }
 
     template<typename Func>
     GAnyClass &staticFunc(MetaFunction metaFunc, Func &&f, const std::string &doc = "")
     {
-        return func(metaFunctionNames()[(size_t) metaFunc], GAny::lambda(f), doc, false);
+        return func(metaFunctionNames()[(size_t) metaFunc], GAnyFunction(f), doc, false);
     }
 
     GAnyClass &property(const std::string &name,
@@ -1183,7 +1180,7 @@ public:
     {
         GAny base = {
                 GAnyClass::instance<Base>(),
-                GAny::lambda(
+                GAnyFunction(
                         [](ChildType *v) {
                             return dynamic_cast<Base *>(v);
                         })};
@@ -1359,28 +1356,28 @@ public:
     template<typename Func>
     Class &func(const std::string &name, Func &&f, const std::string &doc = "")
     {
-        mClazz->func(name, GAny::lambda(f), doc, true);
+        mClazz->func(name, GAnyFunction(f), doc, true);
         return *this;
     }
 
     template<typename Func>
     Class &func(MetaFunction metaFunc, Func &&f, const std::string &doc = "")
     {
-        mClazz->func(metaFunctionNames()[(size_t) metaFunc], GAny::lambda(f), doc, true);
+        mClazz->func(metaFunctionNames()[(size_t) metaFunc], GAnyFunction(f), doc, true);
         return *this;
     }
 
     template<typename Func>
     Class &staticFunc(const std::string &name, Func &&f, const std::string &doc = "")
     {
-        mClazz->func(name, GAny::lambda(f), doc, false);
+        mClazz->func(name, GAnyFunction(f), doc, false);
         return *this;
     }
 
     template<typename Func>
     Class &staticFunc(MetaFunction metaFunc, Func &&f, const std::string &doc = "")
     {
-        mClazz->func(metaFunctionNames()[(size_t) metaFunc], GAny::lambda(f), doc, false);
+        mClazz->func(metaFunctionNames()[(size_t) metaFunc], GAnyFunction(f), doc, false);
         return *this;
     }
 
@@ -2209,12 +2206,6 @@ template<typename Return, typename... Args>
 GAny::GAny(Return (*f)(Args...), const std::string &doc)
         :GAny(GAnyFunction(f, doc))
 {}
-
-template<typename Func>
-GAny GAny::lambda(Func &&f)
-{
-    return GAnyFunction(f);
-}
 
 template<typename Return, typename Class, typename... Args>
 GAny::GAny(Return (Class::*f)(Args...), const std::string &doc)
