@@ -985,10 +985,14 @@ REGISTER_GANY_MODULE(Builtin)
 
     GAnyClass::Class < GAnyCaller > ()
             ->setName("GAnyCaller")
-            .setDoc("GAnyCaller");
+            .setDoc("GAnyCaller")
+            .func(MetaFunction::ToString, [](GAnyCaller &self) {
+                std::stringstream ss;
+                ss << "<GAnyCaller at " << &self << ">";
+                return ss.str();
+            });
 
-    GAnyClass::Class < std::pair<const std::string, GAny>>
-    ()
+    GAnyClass::Class < std::pair<const std::string, GAny>>()
             ->setName("GAnyObjectPair")
             .property("first", [](std::pair<const std::string, GAny> &self) -> std::string {
                 return self.first;
@@ -1052,6 +1056,8 @@ REGISTER_GANY_MODULE(Builtin)
             })
             .func(MetaFunction::GetItem, &GAnyEnvObject::get)
             .func("contains", &GAnyEnvObject::contains)
+            .func("privateSet", &GAnyEnvObject::set)
+            .func("privateDel", &GAnyEnvObject::erase)
             .func("forEach", [](GAnyEnvObject &self, const GAny &func) {
                 // func: function(const std::string &key, const GAny &value)->bool
                 GLockerGuard locker(self.lock);

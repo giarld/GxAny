@@ -552,12 +552,15 @@ public:
         return call(metaFunctionNames()[(size_t) metaFunc], std::forward<Args>(args)...);
     }
 
+    GAny _call(const std::string &function, const GAny **args, int32_t argc) const;
+
     GAny _call(const std::string &function, std::vector<GAny> &args) const;
 
-    GAny _call(MetaFunction metaFunc, std::vector<GAny> &args) const
-    {
-        return _call(metaFunctionNames()[(size_t) metaFunc], args);
-    }
+    GAny _call(MetaFunction metaFunc, const GAny **args, int32_t argc) const;
+
+    GAny _call(MetaFunction metaFunc, std::vector<GAny> &args) const;
+
+    GAny _call(const GAny **args, int32_t argc) const;
 
     GAny _call(std::vector<GAny> &args) const;
 
@@ -797,17 +800,24 @@ public:
     }
 
     static GAnyFunction createVariadicFunction(const std::string &name, const std::string &doc,
-                                               std::function<GAny(std::vector<GAny> &)> func);
+                                               std::function<GAny(const GAny **args, int32_t argc)> func);
 
-    GAny _call(std::vector<GAny> &argv) const;
+    GAny _call(const GAny **args, int32_t argc) const;
 
     template<typename... Args>
     GAny call(Args... args) const
     {
-        std::vector<GAny> argv = {
+        std::initializer_list<GAny> argv = {
                 (GAny(std::move(args)))...
         };
-        return _call(argv);
+
+        auto tArgc = (int32_t) argv.size();
+        const GAny **tArgs = (const GAny **) alloca(sizeof(GAny *) * tArgc);
+        for (int32_t i = 0; i < tArgc; i++) {
+            tArgs[i] = &argv.begin()[i];
+        }
+
+        return _call(tArgs, tArgc);
     }
 
     template<typename Func, typename Return, typename... Args>
@@ -815,24 +825,24 @@ public:
 
     template<typename Func, typename Return, typename... Args, size_t... Is>
     detail::enable_if_t<std::is_void<Return>::value, GAny>
-    call_impl(Func &&f, Return (*)(Args...), std::vector<GAny> &args, detail::index_sequence<Is...>)
+    call_impl(Func &&f, Return (*)(Args...), const GAny **args, detail::index_sequence<Is...>)
     {
-        f(args[Is].castAs<Args>()...);
+        f(const_cast<GAny *>(args[Is])->castAs<Args>()...);
         return GAny::undefined();
     }
 
     template<typename Func, typename Return, typename... Args, size_t... Is>
     detail::enable_if_t<!std::is_void<Return>::value, GAny>
-    call_impl(Func &&f, Return (*)(Args...), std::vector<GAny> &args, detail::index_sequence<Is...>)
+    call_impl(Func &&f, Return (*)(Args...), const GAny **args, detail::index_sequence<Is...>)
     {
-        return GAny(f(args[Is].castAs<Args>()...));
+        return GAny(f(const_cast<GAny *>(args[Is])->castAs<Args>()...));
     }
 
     std::string signature() const;
 
     bool compareArgs(const GAnyFunction &rFunc) const;
 
-    bool matchingArgv(const std::vector<GAny> &argv) const;
+    bool matchingArgv(const GAny **args, int32_t argc) const;
 
     void setName(const std::string &name)
     {
@@ -884,7 +894,7 @@ private:
     GAny mNext;
     std::vector<GAny> mArgTypes;
 
-    std::function<GAny(std::vector<GAny> &)> mFunc;
+    std::function<GAny(const GAny **args, int32_t argc)> mFunc;
     bool mIsMethod = false;
     bool mDoCheckArgs = true;
 };
@@ -898,7 +908,7 @@ public:
     {}
 
 public:
-    GAny call(std::vector<GAny> &args) const;
+    GAny call(const GAny **args, int32_t argc) const;
 
 private:
     GAny mObj;
@@ -1108,10 +1118,10 @@ public:
     const std::string &getDoc() const;
 
     GAnyClass &func(const std::string &name, const GAny &function,
-                   const std::string &doc = "", bool isMethod = true);
+                    const std::string &doc = "", bool isMethod = true);
 
     GAnyClass &func(MetaFunction metaFunc, const GAny &function,
-                   const std::string &doc = "", bool isMethod = true);
+                    const std::string &doc = "", bool isMethod = true);
 
     GAnyClass &staticFunc(const std::string &name, const GAny &function, const std::string &doc = "");
 
@@ -1142,8 +1152,8 @@ public:
     }
 
     GAnyClass &property(const std::string &name,
-                           const GAny &fGet, const GAny &fSet = GAny(),
-                           const std::string &doc = "");
+                        const GAny &fGet, const GAny &fSet = GAny(),
+                        const std::string &doc = "");
 
     template<typename C, typename D>
     GAnyClass &readWrite(const std::string &name, D C::*pm, const std::string &doc = "")
@@ -1189,13 +1199,20 @@ public:
     template<typename... Args>
     GAny call(const GAny &inst, const std::string &function, Args... args) const
     {
-        std::vector<GAny> argv = {
+        std::initializer_list<GAny> argv = {
                 (GAny(std::move(args)))...
         };
-        return _call(inst, function, argv);
+
+        auto tArgc = (int32_t) argv.size();
+        const GAny **tArgs = (const GAny **) alloca(sizeof(GAny *) * tArgc);
+        for (int32_t i = 0; i < tArgc; i++) {
+            tArgs[i] = &argv.begin()[i];
+        }
+
+        return _call(inst, function, tArgs, tArgc);
     }
 
-    GAny _call(const GAny &inst, const std::string &function, std::vector<GAny> &args) const;
+    GAny _call(const GAny &inst, const std::string &function, const GAny **args, int32_t argc) const;
 
     /**
      * @brief Attempt to convert to the base class type.
@@ -1383,8 +1400,8 @@ public:
     }
 
     Class &property(const std::string &name,
-                       const GAny &fGet, const GAny &fSet = GAny(),
-                       const std::string &doc = "")
+                    const GAny &fGet, const GAny &fSet = GAny(),
+                    const std::string &doc = "")
     {
         mClazz->property(name, fGet, fSet, doc);
         return *this;
@@ -2394,10 +2411,17 @@ GAny GAny::call(const std::string &function, Args &&... args) const
 template<typename... Args>
 GAny GAny::operator()(Args... args) const
 {
-    std::vector<GAny> argv = {
+    std::initializer_list<GAny> argv = {
             (GAny(std::move(args)))...
     };
-    return _call(argv);
+
+    auto tArgc = (int32_t) argv.size();
+    const GAny **tArgs = (const GAny **) alloca(sizeof(GAny *) * tArgc);
+    for (int32_t i = 0; i < tArgc; i++) {
+        tArgs[i] = &argv.begin()[i];
+    }
+
+    return _call(tArgs, tArgc);
 }
 
 
@@ -2763,34 +2787,72 @@ inline GAny *GAny::overload(GAny func)
     return dest;
 }
 
-inline GAny GAny::_call(const std::string &function, std::vector<GAny> &args) const
+inline GAny GAny::_call(const std::string &function, const GAny **args, int32_t argc) const
 {
     if (isClass()) {
         // static method
-        return as<GAnyClass>()._call(GAny(), function, args);
+        return as<GAnyClass>()._call(GAny(), function, args, argc);
     } else if (isObject()) {
         auto func = getItem(function);
-        return func._call(args);
+        return func._call(args, argc);
     }
-    return classObject()._call(*this, function, args);
+    return classObject()._call(*this, function, args, argc);
 }
 
-inline GAny GAny::_call(std::vector<GAny> &args) const
+inline GAny GAny::_call(const std::string &function, std::vector<GAny> &args) const
+{
+    auto tArgc = (int32_t) args.size();
+    const GAny **tArgs = (const GAny **) alloca(sizeof(GAny *) * tArgc);
+    for (int32_t i = 0; i < tArgc; i++) {
+        tArgs[i] = &args.begin()[i];
+    }
+
+    return _call(function, tArgs, tArgc);
+}
+
+inline GAny GAny::_call(MetaFunction metaFunc, const GAny **args, int32_t argc) const
+{
+    return _call(metaFunctionNames()[(size_t) metaFunc], args, argc);
+}
+
+inline GAny GAny::_call(MetaFunction metaFunc, std::vector<GAny> &args) const
+{
+    auto tArgc = (int32_t) args.size();
+    const GAny **tArgs = (const GAny **) alloca(sizeof(GAny *) * tArgc);
+    for (int32_t i = 0; i < tArgc; i++) {
+        tArgs[i] = &args.begin()[i];
+    }
+
+    return _call(metaFunc, tArgs, tArgc);
+}
+
+inline GAny GAny::_call(const GAny **args, int32_t argc) const
 {
     if (isFunction()) {
-        return as<GAnyFunction>()._call(args);
+        return as<GAnyFunction>()._call(args, argc);
     } else if (isClass()) {
         // constructor
         const auto &cls = as<GAnyClass>();
         if (!cls.fInit.isFunction()) {
             throw GAnyException("Class " + cls.mName + " does not have MetaFunc::Init function.");
         }
-        return cls.fInit.as<GAnyFunction>()._call(args);
+        return cls.fInit.as<GAnyFunction>()._call(args, argc);
     } else if (isCaller()) {
-        return as<GAnyCaller>().call(args);
+        return as<GAnyCaller>().call(args, argc);
     }
     throw GAnyException(classTypeName() + " can't be called as a function or constructor.");
     return GAny::undefined();
+}
+
+inline GAny GAny::_call(std::vector<GAny> &args) const
+{
+    auto tArgc = (int32_t) args.size();
+    const GAny **tArgs = (const GAny **) alloca(sizeof(GAny *) * tArgc);
+    for (int32_t i = 0; i < tArgc; i++) {
+        tArgs[i] = &args.begin()[i];
+    }
+
+    return _call(tArgs, tArgc);
 }
 
 inline GAny GAny::operator-() const
@@ -3143,7 +3205,7 @@ inline GAny GAny::getItem(const GAny &i) const
             auto paths = si.split(".");
             if (!paths.empty()) {
                 GAny ret = *this;
-                for (const auto &path : paths) {
+                for (const auto &path: paths) {
                     std::string p = path.toStdString();
                     if (p.empty()) {
                         continue;
@@ -3160,23 +3222,20 @@ inline GAny GAny::getItem(const GAny &i) const
         if (!i.isString()) {
             return GAny::undefined();
         }
-        auto &obj = as<GAnyObject>();
         const auto &key = i.castAs<std::string>();
-        GAny v = obj[key];
-
-        if (v.isUndefined()) {
-            try {
-                // Two scenarios: 1. Objects of the custom class GAnyClass, 2. Accessing meta-methods of GAnyObject.
-                v = classObject().getItem((*this), i);
-            } catch (GAnyException &e) {
-                // An exception should be thrown in scenario 1.
-                if (this->isClass() || this->isUserObject()) {
-                    throw e;
-                }
-                v = GAny::undefined();
+        try {
+            GAny attr = classObject().findMember(key);
+            if (attr) {
+                return classObject().getItem((*this), i);
+            }
+        } catch (GAnyException &e) {
+            if (this->isClass() || this->isUserObject()) {
+                throw e;
             }
         }
-        return v;
+
+        auto &obj = as<GAnyObject>();
+        return obj[key];
     }
     if (isArray()) {
         if (i.isString()) {
@@ -3212,8 +3271,16 @@ inline void GAny::setItem(const GAny &i, const GAny &v)
         if (!i.isString()) {
             return;
         }
+        std::string key = i.castAs<std::string>();
+        if (isClass() || isUserObject()) {
+            GAny attr = classObject().findMember(key);
+            if (attr.isProperty()) {
+                classObject().setItem((*this), i, v);
+                return;
+            }
+        }
         auto &obj = as<GAnyObject>();
-        obj.set(i.castAs<std::string>(), v);
+        obj.set(key, v);
         return;
     }
     if (isArray()) {
@@ -3906,7 +3973,7 @@ inline GAny GAny::parseJson(const std::string &json)
 /// ================ GAnyFunction ================
 
 inline GAnyFunction GAnyFunction::createVariadicFunction(const std::string &name, const std::string &doc,
-                                                         std::function<GAny(std::vector<GAny> &)> func)
+                                                         std::function<GAny(const GAny **args, int32_t argc)> func)
 {
     GAnyFunction anyFunc;
     anyFunc.mName = name;
@@ -3917,22 +3984,22 @@ inline GAnyFunction GAnyFunction::createVariadicFunction(const std::string &name
     return anyFunc;
 }
 
-inline GAny GAnyFunction::_call(std::vector<GAny> &argv) const
+inline GAny GAnyFunction::_call(const GAny **args, int32_t argc) const
 {
     std::vector<const GAnyFunction *> unmatched;
     std::vector<std::pair<const GAnyFunction *, GAnyException>> catches;
 
     // [1] perfect match
     for (const GAnyFunction *overload = this; overload != nullptr; overload = &overload->mNext.as<GAnyFunction>()) {
-        if (overload->matchingArgv(argv)) {
+        if (overload->matchingArgv(args, argc)) {
             try {
-                return overload->mFunc(argv);
+                return overload->mFunc(args, argc);
             }
             catch (GAnyException &e) {
                 catches.emplace_back(overload, e);
             }
             break;
-        } else if (!overload->mDoCheckArgs || (overload->mArgTypes.size() == argv.size() + 1)) {
+        } else if (!overload->mDoCheckArgs || (overload->mArgTypes.size() == argc + 1)) {
             unmatched.push_back(overload);
         }
         if (!overload->mNext.isFunction()) {
@@ -3944,7 +4011,7 @@ inline GAny GAnyFunction::_call(std::vector<GAny> &argv) const
     // [2] fuzzy matching
     for (const GAnyFunction *overload: unmatched) {
         try {
-            return overload->mFunc(argv);
+            return overload->mFunc(args, argc);
         }
         catch (GAnyException &e) {
             catches.emplace_back(overload, e);
@@ -3955,8 +4022,8 @@ inline GAny GAnyFunction::_call(std::vector<GAny> &argv) const
     std::stringstream stream;
     stream << "Failed to call " << (mIsMethod ? "method" : "function") << " with input arguments: [";
 
-    for (auto it = argv.begin(); it != argv.end(); it++) {
-        stream << (it == argv.begin() ? "" : ",") << it->classTypeName();
+    for (int32_t i = 0; i < argc; i++) {
+        stream << (i == 0 ? "" : ",") << args[i]->classTypeName();
     }
     stream << "].\nAt: " << (*this);
 
@@ -4027,12 +4094,12 @@ inline bool GAnyFunction::compareArgs(const GAnyFunction &rFunc) const
     return true;
 }
 
-inline bool GAnyFunction::matchingArgv(const std::vector<GAny> &argv) const
+inline bool GAnyFunction::matchingArgv(const GAny **args, int32_t argc) const
 {
     if (!mDoCheckArgs) {
         return true;
     }
-    if (mArgTypes.size() != argv.size() + 1) {
+    if (mArgTypes.size() != argc + 1) {
         return false;
     }
     for (size_t i = 1; i < mArgTypes.size(); i++) {
@@ -4040,7 +4107,7 @@ inline bool GAnyFunction::matchingArgv(const std::vector<GAny> &argv) const
         if (lClazz == *GAnyClass::Class < GAny > ()) {
             continue;
         }
-        if (lClazz != argv[i - 1].classObject()) {
+        if (lClazz != args[i - 1]->classObject()) {
             return false;
         }
     }
@@ -4100,7 +4167,7 @@ void GAnyFunction::initialize(Func &&f, Return (*)(Args...), const std::string &
     this->mArgTypes = {GAnyClass::instance<Return>(), GAnyClass::instance<Args>()...};
     this->mDoc = doc;
 
-    this->mFunc = [this, f](std::vector<GAny> &args) -> GAny {
+    this->mFunc = [this, f](const GAny **args, int32_t argc) -> GAny {
         using indices = detail::make_index_sequence<sizeof...(Args)>;
         return call_impl(f, (Return(*)(Args...))
         nullptr, args, indices{});
@@ -4109,9 +4176,9 @@ void GAnyFunction::initialize(Func &&f, Return (*)(Args...), const std::string &
 
 /// ================ GAnyCaller ================
 
-inline GAny GAnyCaller::call(std::vector<GAny> &args) const
+inline GAny GAnyCaller::call(const GAny **args, int32_t argc) const
 {
-    return mObj.classObject()._call(mObj, mMethodName, args);
+    return mObj.classObject()._call(mObj, mMethodName, args, argc);
 }
 
 /// ================ GAnyClass ================
@@ -4242,7 +4309,7 @@ inline GAnyClass &GAnyClass::staticFunc(MetaFunction metaFunc, const GAny &funct
 }
 
 inline GAnyClass &GAnyClass::property(const std::string &name, const GAny &fGet, const GAny &fSet,
-                                         const std::string &doc)
+                                      const std::string &doc)
 {
     mAttr[name] = GAnyProperty(name, doc, fGet, fSet);
     return *this;
@@ -4281,7 +4348,7 @@ inline void GAnyClass::registerToEnv(std::shared_ptr<GAnyClass> clazz)
     }
 }
 
-inline GAny GAnyClass::_call(const GAny &inst, const std::string &function, std::vector<GAny> &args) const
+inline GAny GAnyClass::_call(const GAny &inst, const std::string &function, const GAny **args, int32_t argc) const
 {
     std::stringstream sst;
 
@@ -4293,13 +4360,17 @@ inline GAny GAnyClass::_call(const GAny &inst, const std::string &function, std:
                 if (inst.isUndefined()) {
                     throw GAnyException("Method should be called with self.");
                 }
-                std::vector<GAny> _args;
-                _args.reserve(args.size() + 1);
-                _args = {inst};
-                _args.insert(_args.end(), args.begin(), args.end());
-                return func._call(_args);
+
+                auto tArgc = argc + 1;
+                const GAny **tArgs = (const GAny **) alloca(sizeof(GAny *) * tArgc);
+                tArgs[0] = &inst;
+                for (int32_t i = 0; i < argc; i++) {
+                    tArgs[i + 1] = args[i];
+                }
+
+                return func._call(tArgs, tArgc);
             } else {
-                return func._call(args);
+                return func._call(args, argc);
             }
         } catch (GAnyException &e) {
             sst << e.what() << "\n";
@@ -4309,9 +4380,9 @@ inline GAny GAnyClass::_call(const GAny &inst, const std::string &function, std:
     for (const GAny &p: this->mParents) {
         try {
             if (p.isClass()) {
-                return p.as<GAnyClass>()._call(inst, function, args);
+                return p.as<GAnyClass>()._call(inst, function, args, argc);
             }
-            return p.getItem(0).as<GAnyClass>()._call(p.getItem(1)(inst), function, args);
+            return p.getItem(0).as<GAnyClass>()._call(p.getItem(1)(inst), function, args, argc);
         }
         catch (GAnyException &e) {
             sst << e.what();
@@ -4331,12 +4402,20 @@ inline void GAnyClass::makeConstructor(GAny fVar)
 {
     auto &f = fVar.as<GAnyFunction>();
     auto func = f.mFunc;
-    f.mFunc = [this, func](std::vector<GAny> &args) -> GAny {
+    f.mFunc = [this, func](const GAny **args, int32_t argc) -> GAny {
         GAny self = GAny::object();
         self.as<GAnyObject>().clazz = this;
         std::vector<GAny> args1 = {self};
-        args1.insert(args1.end(), args.begin(), args.end());
-        func(args1);
+
+        int32_t tArgc = argc + 1;
+        const GAny **tArgs = (const GAny **) alloca(sizeof(GAny *) * tArgc);
+
+        tArgs[0] = &self;
+        for (int32_t i = 0; i < argc; i++) {
+            tArgs[i + 1] = args[i];
+        }
+
+        func(tArgs, tArgc);
         return self;
     };
     if (f.mDoCheckArgs && (f.mArgTypes.begin() + 1 != f.mArgTypes.end())) {

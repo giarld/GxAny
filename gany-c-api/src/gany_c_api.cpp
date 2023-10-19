@@ -193,19 +193,19 @@ GAnyPtr ganyCreateFunction(CAnyFuncPtr funcPtr)
 
     GAnyFunction func = GAnyFunction::createVariadicFunction(
             "CFunction", "C GAny function",
-            [funcPtr, dtorHandler](std::vector<GAny> &args) {
+            [funcPtr, dtorHandler](const GAny **args, int32_t argc) {
                 try {
-                    std::vector<GAnyPtr> argsPtr;
-                    argsPtr.reserve(args.size());
-                    for (auto &arg: args) {
-                        argsPtr.push_back(ganyCreatePtr(arg));
+                    auto *tArgs = (GAnyPtr *) alloca(sizeof(GAnyPtr) * argc);
+                    for (int32_t i = 0; i < argc; i++) {
+                        // Stored by the target language and released at the appropriate time.
+                        tArgs[i] = ganyCreatePtr(*args[i]);
                     }
 
                     GAnyPtr ret = 0;
                     {
                         auto locker = sLockFuncProxy.readGuard();
                         if (sCAnyFunctionProxy) {
-                            ret = sCAnyFunctionProxy(funcPtr, argsPtr.data(), (int32_t) argsPtr.size());
+                            ret = sCAnyFunctionProxy(funcPtr, tArgs, argc);
                         }
                     }
                     if (ret == 0) {

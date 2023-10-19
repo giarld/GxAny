@@ -6,6 +6,7 @@ add_executable(TestGAny
 
         src/test_type.cpp
         src/test_enum.cpp
+        src/test_reflection.cpp
 )
 
 target_link_libraries(TestGAny gtest gany-core)
