@@ -30,6 +30,7 @@
 #include "enum.h"
 #include "common.h"
 #include "gstring.h"
+#include "gmutex.h"
 
 #include <cstring>
 #include <string>
@@ -39,7 +40,6 @@
 #include <map>
 #include <unordered_map>
 #include <memory>
-#include <mutex>
 #include <array>
 #include <tuple>
 #include <typeindex>
@@ -877,6 +877,16 @@ public:
 
     GAny dump() const;
 
+    void setBoundData(const GAny &data)
+    {
+        mBoundData = data;
+    }
+
+    GAny getBoundData() const
+    {
+        return mBoundData;
+    }
+
 private:
     friend class GAny;
 
@@ -894,6 +904,8 @@ private:
     std::function<GAny(const GAny **args, int32_t argc)> mFunc;
     bool mIsMethod = false;
     bool mDoCheckArgs = true;
+
+    GAny mBoundData;
 };
 
 
@@ -916,14 +928,22 @@ private:
 class CppType
 {
 public:
-    explicit CppType(std::type_index typeIndex)
-            : mType(typeIndex)
-    {}
+    explicit CppType(std::type_index typeIndex);
 
 public:
     std::type_index typeIndex() const
     {
         return mType;
+    }
+
+    AnyType anyType() const
+    {
+        return mAnyType;
+    }
+
+    int32_t basicTypeIndex() const
+    {
+        return mBasicTypeIndex;
     }
 
     const char *name() const
@@ -946,6 +966,11 @@ public:
         return result;
     }
 
+    bool isClassGAny() const
+    {
+        return mBasicTypeIndex == 24;
+    }
+
     bool operator==(const CppType &rhs) const
     {
         return EqualType(this->typeIndex(), rhs.typeIndex());
@@ -962,6 +987,8 @@ public:
 
 protected:
     std::type_index mType;
+    AnyType mAnyType = AnyType::user_obj_t;
+    int32_t mBasicTypeIndex = -1;
 };
 
 template<typename T>
@@ -1295,15 +1322,16 @@ private:
     std::string mName;
     std::string mDoc;
     CppType mCppType;
+    AnyType mType;
     size_t mHash;
     std::unordered_map<std::string, GAny> mAttr; // Read only when in use
     GAny fInit;
     GAny fGetItem;
     GAny fSetItem;
     std::vector<GAny> mParents;
-    AnyType mType;
 
     friend class GAny;
+    friend class GAnyFunction;
 
     template<typename>
     friend
@@ -1750,7 +1778,7 @@ public:
     }
 
 public:
-    mutable std::mutex lock;
+    mutable GSpinLock lock;
 };
 
 
@@ -1850,7 +1878,7 @@ public:
     }
 
 public:
-    mutable std::mutex lock;
+    mutable GSpinLock lock;
 };
 
 /// ================================================================================================
@@ -2392,7 +2420,7 @@ GAny GAny::call(const std::string &function, Args &&... args) const
     if (isClass()) {
         // static method
         return as<GAnyClass>().call(GAny(), function, std::forward<Args>(args)...);
-    } else if (isObject()) {
+    } else if (!isUserObject() && isObject()) {
         auto func = getItem(function);
         return func(std::forward<Args>(args)...);
     }
@@ -2783,7 +2811,7 @@ inline GAny GAny::_call(const std::string &function, const GAny **args, int32_t 
     if (isClass()) {
         // static method
         return as<GAnyClass>()._call(GAny(), function, args, argc);
-    } else if (isObject()) {
+    } else if (!isUserObject() && isObject()) {
         auto func = getItem(function);
         return func._call(args, argc);
     }
@@ -3213,20 +3241,21 @@ inline GAny GAny::getItem(const GAny &i) const
         if (!i.isString()) {
             return GAny::undefined();
         }
+        auto &obj = as<GAnyObject>();
         const auto &key = i.castAs<std::string>();
-        try {
-            GAny attr = classObject().findMember(key);
-            if (attr) {
-                return classObject().getItem((*this), i);
-            }
-        } catch (GAnyException &e) {
-            if (this->isClass() || this->isUserObject()) {
-                throw e;
+        GAny v = obj[key];
+
+        if (v.isUndefined()) {
+            try {
+                v = classObject().getItem((*this), i);
+            } catch (GAnyException &e) {
+                if (this->isClass() || this->isUserObject()) {
+                    throw e;
+                }
+                v = GAny::undefined();
             }
         }
-
-        auto &obj = as<GAnyObject>();
-        return obj[key];
+        return v;
     }
     if (isArray()) {
         if (i.isString()) {
@@ -4095,7 +4124,7 @@ inline bool GAnyFunction::matchingArgv(const GAny **args, int32_t argc) const
     }
     for (size_t i = 1; i < mArgTypes.size(); i++) {
         const auto &lClazz = mArgTypes[i].as<GAnyClass>();
-        if (lClazz == *GAnyClass::Class < GAny > ()) {
+        if (lClazz.mCppType.isClassGAny()) {
             continue;
         }
         if (lClazz != args[i - 1]->classObject()) {
@@ -4165,6 +4194,48 @@ void GAnyFunction::initialize(Func &&f, Return (*)(Args...), const std::string &
     };
 }
 
+/// ================ CppType ================
+
+inline CppType::CppType(std::type_index typeIndex)
+        : mType(typeIndex)
+{
+    static std::map<std::type_index, std::pair<int32_t, AnyType>> lut = {
+            {typeid(void), {0, AnyType::undefined_t}},
+            {typeid(nullptr), {1, AnyType::null_t}},
+            {typeid(bool), {2, AnyType::boolean_t}},
+            {typeid(char), {3, AnyType::int8_t}},
+            {typeid(int8_t), {4, AnyType::int8_t}},
+            {typeid(uint8_t), {5, AnyType::int8_t}},
+            {typeid(int16_t), {6, AnyType::int16_t}},
+            {typeid(uint16_t), {7, AnyType::int16_t}},
+            {typeid(int32_t), {8, AnyType::int32_t}},
+            {typeid(uint32_t), {9, AnyType::int32_t}},
+            {typeid(int64_t), {10, AnyType::int64_t}},
+            {typeid(uint64_t), {11, AnyType::int64_t}},
+            {typeid(long), {12, AnyType::int64_t}},
+            {typeid(float), {13, AnyType::float_t}},
+            {typeid(double), {14, AnyType::double_t}},
+            {typeid(std::string), {15, AnyType::string_t}},
+            {typeid(GAnyArray), {16, AnyType::array_t}},
+            {typeid(GAnyObject), {17, AnyType::object_t}},
+            {typeid(GAnyFunction), {18, AnyType::function_t}},
+            {typeid(GAnyClass), {19, AnyType::class_t}},
+            {typeid(GAnyClass::GAnyProperty), {20, AnyType::property_t}},
+            {typeid(GAnyClass::GAnyEnum), {21, AnyType::enum_t}},
+            {typeid(GAnyException), {22, AnyType::exception_t}},
+            {typeid(GAnyCaller), {23, AnyType::caller_t}},
+            {typeid(GAny), {24, AnyType::user_obj_t}}
+    };
+    auto it = lut.find(typeIndex);
+    if (it != lut.end()) {
+        const auto &iti = it->second;
+        mBasicTypeIndex = iti.first;
+        mAnyType = iti.second;
+    } else {
+        mAnyType = AnyType::user_obj_t;
+    }
+}
+
 /// ================ GAnyCaller ================
 
 inline GAny GAnyCaller::call(const GAny **args, int32_t argc) const
@@ -4176,38 +4247,8 @@ inline GAny GAnyCaller::call(const GAny **args, int32_t argc) const
 
 inline GAnyClass::GAnyClass(std::string nameSpace, std::string name, std::string doc, const CppType &cppType)
         : mNameSpace(std::move(nameSpace)), mName(std::move(name)), mDoc(std::move(doc)),
-          mCppType(cppType), mType(AnyType::user_obj_t)
+          mCppType(cppType), mType(cppType.anyType())
 {
-    static std::map<std::type_index, AnyType> lut = {
-            {typeid(void),          AnyType::undefined_t},
-            {typeid(nullptr),       AnyType::null_t},
-            {typeid(bool),          AnyType::boolean_t},
-            {typeid(char),          AnyType::int8_t},
-            {typeid(int8_t),        AnyType::int8_t},
-            {typeid(uint8_t),       AnyType::int8_t},
-            {typeid(int16_t),       AnyType::int16_t},
-            {typeid(uint16_t),      AnyType::int16_t},
-            {typeid(int32_t),       AnyType::int32_t},
-            {typeid(uint32_t),      AnyType::int32_t},
-            {typeid(int64_t),       AnyType::int64_t},
-            {typeid(uint64_t),      AnyType::int64_t},
-            {typeid(float),         AnyType::float_t},
-            {typeid(double),        AnyType::double_t},
-            {typeid(long),          AnyType::int64_t},
-            {typeid(std::string),   AnyType::string_t},
-            {typeid(GAnyArray),     AnyType::array_t},
-            {typeid(GAnyObject),    AnyType::object_t},
-            {typeid(GAnyFunction),  AnyType::function_t},
-            {typeid(GAnyClass),     AnyType::class_t},
-            {typeid(GAnyProperty),  AnyType::property_t},
-            {typeid(GAnyEnum),      AnyType::enum_t},
-            {typeid(GAnyException), AnyType::exception_t},
-            {typeid(GAnyCaller),    AnyType::caller_t}
-    };
-    auto it = lut.find(cppType.typeIndex());
-    if (it != lut.end()) {
-        mType = it->second;
-    }
     updateHash();
 }
 

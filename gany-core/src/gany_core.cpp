@@ -940,7 +940,9 @@ REGISTER_GANY_MODULE(Builtin)
             .func("isMethod", [](GAnyFunction &self) {
                 return self.isMethod();
             })
-            .func("compareArgs", &GAnyFunction::compareArgs);
+            .func("compareArgs", &GAnyFunction::compareArgs)
+            .func("setBoundData", &GAnyFunction::setBoundData)
+            .func("getBoundData", &GAnyFunction::getBoundData);
 
     GAnyClass::Class < GAnyClass > ()
             ->setName("GAnyClass")

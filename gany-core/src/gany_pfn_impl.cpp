@@ -58,34 +58,28 @@ static GAny _parseJson(const rapidjson::Value &v)
     switch (v.GetType()) {
         case rapidjson::kNullType:
             return GAny::null();
-            break;
         case rapidjson::kFalseType:
             return false;
-            break;
         case rapidjson::kTrueType:
             return true;
-            break;
         case rapidjson::kObjectType: {
             GAny obj = GAny::object();
-            for (auto &i : v.GetObject()) {
+            for (auto &i: v.GetObject()) {
                 obj[std::string(i.name.GetString())] = _parseJson(i.value);
             }
             return obj;
         }
-            break;
         case rapidjson::kArrayType: {
             GAny array = GAny::array();
-            for (const Value &i : v.GetArray()) {
+            for (const Value &i: v.GetArray()) {
                 array.pushBack(_parseJson(i));
             }
             return array;
         }
-            break;
         case rapidjson::kStringType: {
             auto s = std::string(v.GetString());
             return s;
         }
-            break;
         case rapidjson::kNumberType: {
             if (v.IsInt()) {
                 return v.GetInt();
@@ -128,7 +122,7 @@ void ganyParseJsonImpl(const char *jsonStr, void *ret)
 
 void ganyRegisterToEnvImpl(void *clazz)
 {
-    std::shared_ptr<GAnyClass> clazzPtr = *reinterpret_cast<std::shared_ptr<GAnyClass>*>(clazz);
+    std::shared_ptr<GAnyClass> clazzPtr = *reinterpret_cast<std::shared_ptr<GAnyClass> *>(clazz);
     if (clazzPtr->getName().empty()) {
         return;
     }
@@ -150,12 +144,23 @@ void ganyRegisterToEnvImpl(void *clazz)
 
 void ganyClassInstanceImpl(void *cppType, void *ret)
 {
-    static std::mutex lock;
+    static GSpinLock lock;
     static std::unordered_map<StaticString, std::shared_ptr<GAnyClass>> clsMap;
+    static std::array<std::shared_ptr<GAnyClass>, 25> basicTypeArray;
 
     auto *cppTypePtr = reinterpret_cast<CppType *>(cppType);
-
     std::shared_ptr<GAnyClass> &cls = *reinterpret_cast<std::shared_ptr<GAnyClass> *>(ret);
+
+    if (cppTypePtr->basicTypeIndex() >= 0) {
+        auto &basicTypeRef = basicTypeArray[cppTypePtr->basicTypeIndex()];
+        if (!basicTypeRef) {
+            basicTypeRef = std::shared_ptr<GAnyClass>(
+                    GX_NEW(GAnyClass, "", cppTypePtr->demangleName(), "", *cppTypePtr));
+        }
+        cls = basicTypeRef;
+        return;
+    }
+
     StaticString className = cppTypePtr->name();
 
     std::lock_guard locker(lock);
