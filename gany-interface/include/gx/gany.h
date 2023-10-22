@@ -1708,6 +1708,9 @@ public:
         if (CppType::EqualType(tp, typeid(GAnyObject))) {
             return this;
         }
+        if (CppType::EqualType(tp, typeid(std::unordered_map<std::string, GAny>))) {
+            return &var;
+        }
         return nullptr;
     }
 
@@ -1811,6 +1814,9 @@ public:
     {
         if (CppType::EqualType(tp, typeid(GAnyArray))) {
             return this;
+        }
+        if (CppType::EqualType(tp, typeid(std::vector<GAny>))) {
+            return &var;
         }
         return nullptr;
     }

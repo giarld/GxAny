@@ -28,143 +28,132 @@
 
 using namespace gx;
 
-class Course
+class BaseClass
 {
 public:
-    explicit Course(std::string name)
-            : mName(std::move(name))
+    int32_t baseFunction() const
+    {
+        return 114;
+    }
+};
+
+class MyClass : public BaseClass
+{
+public:
+    MyClass(int32_t val)
+            : value(val)
     {}
 
-public:
-    void setScore(int32_t score)
+    void setValue(int32_t val)
     {
-        mScore = score;
+        value = val;
     }
 
-    int32_t getScore() const
+    int32_t getValue() const
     {
-        return mScore;
-    }
-
-    std::string getName() const
-    {
-        return mName;
+        return value;
     }
 
 private:
-    std::string mName;
-    int32_t mScore;
+    int32_t value;
 };
 
-class Student
+
+TEST(GAnyReflectionTest, ReflectionWithGAnyClass)
 {
-public:
-    using SayHelloFunc = std::function<void()>;
+    // Register BaseClass type
+    Class<BaseClass>("MyNamespace", "BaseClass", "Base class for testing inheritance")
+            .func("baseFunction", &BaseClass::baseFunction, "Base class function");
 
-public:
-    explicit Student(std::string name, int32_t age)
-            : mName(std::move(name)), mAge(age)
-    {}
+    Class<MyClass>("MyNamespace", "MyClass", "Description for MyClass")
+            .inherit<BaseClass>()
+            .construct<int32_t>()
+            .func("setValue", [](MyClass &self, int32_t newVal) {
+                self.setValue(newVal);
+            }, "Set value for MyClass")
+            .func("getValue", [](MyClass &self) -> int32_t {
+                return self.getValue();
+            }, "Get value from MyClass")
+            .property("value", &MyClass::getValue, &MyClass::setValue)
+            .defEnum("MyEnum", {
+                    {"ENUM_A", 1},
+                    {"ENUM_B", 2},
+                    {"ENUM_C", 3}
+            }, "An example enum");
 
-public:
-    std::string getName() const
-    {
-        return mName;
-    }
+    // Create MyClass object using reflection
+    auto MyType = GEnv["MyNamespace.MyClass"];
+    auto myObj = MyType(10);  // Initialize to 10 using constructor
 
-    void setAge(int32_t age)
-    {
-        mAge = age;
-    }
+    // Get and set the value of MyClass using reflection
+    EXPECT_EQ(myObj.call("getValue").as<int32_t>(), 10);  // Initial value should be 10
+    EXPECT_NO_THROW(myObj.call("setValue", 20));
+    EXPECT_EQ(myObj.call("getValue").as<int32_t>(), 20);  // Value after setting should be 20
 
-    int32_t getAge() const
-    {
-        return mAge;
-    }
+    // Test properties
+    EXPECT_EQ(myObj.getItem("value").as<int32_t>(), 20);  // Value obtained through property should be 20
 
-    void setSayHelloFunc(SayHelloFunc func)
-    {
-        mSayHelloFunc = std::move(func);
-    }
+    // Test inheritance
+    EXPECT_EQ(myObj.call("baseFunction").toInt32(), 114);  // Should print "Base function called"
 
-    void sayHello()
-    {
-        if (mSayHelloFunc) {
-            mSayHelloFunc();
-        }
-        std::cout << "Nothing todo." << std::endl;
-    }
+    // Test enums
+    EXPECT_EQ(MyType.getItem("MyEnum.ENUM_A").toInt32(), 1);
+    EXPECT_EQ(MyType.getItem("MyEnum.ENUM_B").toInt32(), 2);
+    EXPECT_EQ(MyType.getItem("MyEnum.ENUM_C").toInt32(), 3);
 
-    void sayHello(const std::string &content)
-    {
-        std::cout << content << std::endl;
-    }
+    MyClass &myObjCpp = myObj.as<MyClass>();
+    // Convert to C++object and call
+    EXPECT_EQ(myObjCpp.getValue(), 20);
 
-    void addCourses(const Course &course)
-    {
-        mCourses.emplace(std::make_pair(course.getName(), course));
-    }
+    const BaseClass &myObjBase = myObj.castAs<BaseClass>();
+    // Convert to Base Class Object
+    EXPECT_EQ(myObjBase.baseFunction(), 114);
+}
 
-    int32_t getTotalScore() const
-    {
-        int32_t score = 0;
-        for (const auto &i: mCourses) {
-            score += i.second.getScore();
-        }
-        return score;
-    }
-
-private:
-    std::string mName;
-    int32_t mAge;
-    std::unordered_map<std::string, Course> mCourses;
-    SayHelloFunc mSayHelloFunc;
-};
-
-TEST(TestGAny, Reflection)
+TEST(GAnyReflectionTest, DirectTypeCreationWithGAnyClass)
 {
-    GAny ClassCourse = GAnyClass::Class < Course > ();
-    ClassCourse.as<GAnyClass>()
-            .setName("Course")
-            .setDoc("Class Course.")
-            .func(MetaFunction::Init, [](std::string name) {
-                return std::make_unique<Course>(std::move(name));
+    // Directly create a new type named 'DynamicType' using GAnyClass
+    auto DynamicType = GAnyClass::Class("", "DynamicType", "Directly created type for testing purposes");
+    DynamicType->func(MetaFunction::Init, [](GAny &self, int32_t x, int32_t y) {
+                self.setItem("x", x);
+                self.setItem("y", y);
+            }, "Constructor for DynamicType")
+            .func("setX", [](GAny &self, int32_t x) {
+                self.setItem("x", x);
+            }, "Set x for DynamicType")
+            .func("getX", [](GAny &self) -> int32_t {
+                return self.getItem("x").as<int32_t>();
+            }, "Get x from DynamicType")
+            .func("print", [](GAny &self) {
+                printf("print: %s\n", self.toString().c_str());
             })
-            .property("score", &Course::getScore, &Course::setScore)
-            .func("setScore", &Course::setScore)
-            .func("getScore", &Course::getScore)
-            .property("name", &Course::getName)
-            .func("getName", &Course::getName);
+            .func(MetaFunction::ToString, [](GAny &self) -> std::string {
+                std::stringstream ss;
+                ss << "DynamicType x = " << self.getItem("x").as<int32_t>() << ", y = " << self.getItem("y").as<int32_t>();
+                return ss.str();
+            }, "Convert DynamicType to string")
+            .defEnum(
+                    "DynamicEnum",
+                    {
+                            {"VAL_1", 1},
+                            {"VAL_2", 2},
+                            {"VAL_3", 3}
+                    }, "An example enum for DynamicType");
 
-    GAny ClassStudent = GAnyClass::Class < Student > ();
-    ClassStudent.as<GAnyClass>()
-            .setName("Student")
-            .setDoc("Class Student.")
-            .func(MetaFunction::Init, [](std::string name, int32_t age) {
-                return std::make_unique<Student>(std::move(name), age);
-            })
-            .property("name", &Student::getName)
-            .func("getName", &Student::getName)
-            .property("age", &Student::getAge, &Student::setAge)
-            .func("setAge", &Student::setAge)
-            .func("getAge", &Student::getAge)
-            .func("setSayHelloFunc", [](Student &self, const GAny &func) {
-                // Lambda cannot complete type inference, use GAny to pass the function directly.
-                if (func.isFunction()) {
-                    self.setSayHelloFunc([func]() {
-                        func();
-                    });
-                }
-            })
-            .func("sayHello", [](Student &self, const std::string &content) {
-                self.sayHello(content);
-            })
-            .func("sayHello", [](Student &self) {
-                self.sayHello();
-            })
-            .func("addCourses", &Student::addCourses)
-            .func("getTotalScore", &Student::getTotalScore);
+    // Register the dynamically created type to GEnv
+    GAnyClass::registerToEnv(DynamicType);
 
-    GAny stud1 = ClassStudent("Bob", 15);
-    EXPECT_TRUE(stud1.isUserObject());
+    // Create an instance of the dynamically created type using the constructor
+    auto tDynamicType = GEnv["DynamicType"];
+    auto dynObj = tDynamicType(10, 20);  // Initialize x with 10 and y with 20
+
+    // Use the instance to call functions and access properties
+    EXPECT_EQ(dynObj.call("getX").as<int32_t>(), 10);  // Initial x should be 10
+    EXPECT_NO_THROW(dynObj.call("setX", 30));
+    EXPECT_EQ(dynObj.call("getX").as<int32_t>(), 30);  // After setting, x should be 30
+
+    // Test enum values
+    EXPECT_EQ(tDynamicType.getItem("DynamicEnum.VAL_1").toInt32(), 1);
+    EXPECT_EQ(tDynamicType.getItem("DynamicEnum.VAL_2").toInt32(), 2);
+    EXPECT_EQ(tDynamicType.getItem("DynamicEnum.VAL_3").toInt32(), 3);
 }

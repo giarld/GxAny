@@ -41,7 +41,7 @@ DEF_ENUM_FLAGS_4(TestFlag, uint8_t,
                  C, 0x04,
                  AB, 0x03)
 
-TEST(TestGAny, Enum)
+TEST(GAnyTest, Enum)
 {
     EXPECT_EQ(EnumTestEnumCount, 5);
 
