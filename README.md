@@ -12,7 +12,7 @@ GxAny is a powerful, flexible, and efficient library that introduces a dynamic t
 - **Plugin System**: Provides a header-only module, gany-interface, aimed at facilitating users to write plugins that can then be loaded and invoked by the main program.
 - **Cross-Language Binding**: Conveniently binds to various languages, allowing target languages to load and invoke functionalities written in C/C++, and also facilitates invoking functionalities of other languages in C++.
 
-## Quick Start:
+## Quick Start
 ```cpp
 #include <gx/gany_core.h>
 #include <gx/gany.h>
@@ -35,7 +35,7 @@ int main(int argc, char *args[])
 }
 ```
 
-## Download & Usage:
+## Download & Usage
 ```shell
 git clone git@github.com:giarld/GxAny.git
 ```
@@ -52,5 +52,5 @@ target_link_libraries(TARGET_NAME PRIVATE gany-core)
 target_link_libraries(TARGET_NAME PRIVATE gany-interface)
 ```
 
-## License:
+## License
 `GxAny` is licensed under the [MIT License](LICENSE.txt).

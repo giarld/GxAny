@@ -48,7 +48,7 @@
 #define MAX_ABS_PATH 2048
 
 
-typedef void (*RegisterModuleFunc)(PFN_ganyGetEnv pfnGetEnv, PFN_ganyParseJson pfnParseJson,
+typedef int32_t (*RegisterModuleFunc)(int64_t versionCode, PFN_ganyGetEnv pfnGetEnv, PFN_ganyParseJson pfnParseJson,
                                    PFN_ganyRegisterToEnv pfnRegisterToEnv, PFN_ganyClassInstance pfnClassInstance);
 
 GX_NS_BEGIN
@@ -238,7 +238,15 @@ bool loadCPlugin(const std::string &searchPath, const std::string &pluginName)
             return false;
         }
         auto regFunc = (RegisterModuleFunc) regFuncPtr;
-        regFunc(pfnGanyGetEnv, pfnGanyParseJson, pfnGanyRegisterToEnv, pfnGanyClassInstance);
+        int32_t retCode = regFunc(GANY_VERSION_CODE, pfnGanyGetEnv, pfnGanyParseJson, pfnGanyRegisterToEnv, pfnGanyClassInstance);
+        if (retCode == 1) {
+            std::cerr << "Register module: " << pluginName << " failure. GAny version mismatch!" << std::endl;
+            return false;
+        }
+        if (retCode != 0) {
+            std::cerr << "Register module: " << pluginName << " failure. Unknown error code: " << retCode << std::endl;
+            return false;
+        }
         return true;
     }
     return false;
@@ -1160,6 +1168,6 @@ REGISTER_GANY_MODULE(Builtin)
 void initGAnyCore()
 {
     using namespace gx;
-    RegisterBuiltin(ganyGetEnvImpl, ganyParseJsonImpl, ganyRegisterToEnvImpl, ganyClassInstanceImpl);
+    RegisterBuiltin(GANY_VERSION_CODE, ganyGetEnvImpl, ganyParseJsonImpl, ganyRegisterToEnvImpl, ganyClassInstanceImpl);
     initPluginLoader();
 }

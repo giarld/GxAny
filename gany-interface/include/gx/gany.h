@@ -63,36 +63,50 @@
     PFN_ganyParseJson pfnGanyParseJson = nullptr;    \
     PFN_ganyRegisterToEnv pfnGanyRegisterToEnv = nullptr;    \
     PFN_ganyClassInstance pfnGanyClassInstance = nullptr;    \
-    class GAnyModule##MODULE_NAME           \
-    {                                       \
-    public:                                 \
-        GAnyModule##MODULE_NAME();          \
-    };                                      \
-    void Register##MODULE_NAME(PFN_ganyGetEnv pfnGetEnv, PFN_ganyParseJson pfnParseJson, PFN_ganyRegisterToEnv pfnRegisterToEnv, PFN_ganyClassInstance pfnClassInstance) \
-    {                                       \
-        pfnGanyGetEnv = pfnGetEnv;             \
-        pfnGanyParseJson = pfnParseJson;       \
+    class GAnyModule##MODULE_NAME         \
+    {                                     \
+    public:                               \
+        GAnyModule##MODULE_NAME();        \
+    };                                    \
+    int32_t Register##MODULE_NAME(int64_t versionCode, PFN_ganyGetEnv pfnGetEnv, PFN_ganyParseJson pfnParseJson, PFN_ganyRegisterToEnv pfnRegisterToEnv, PFN_ganyClassInstance pfnClassInstance) \
+    {                                     \
+        if (versionCode != GANY_VERSION_CODE) {  \
+            return 1;                     \
+        }                                 \
+        pfnGanyGetEnv = pfnGetEnv;        \
+        pfnGanyParseJson = pfnParseJson;  \
         pfnGanyRegisterToEnv = pfnRegisterToEnv; \
-        pfnGanyClassInstance = pfnClassInstance;     \
-                                          \
+        pfnGanyClassInstance = pfnClassInstance; \
         static GAnyModule##MODULE_NAME gAnyModule##MODULE_NAME; \
-        gAnyModule##MODULE_NAME;            \
-    }                                       \
+        gAnyModule##MODULE_NAME;          \
+        return 0;                         \
+    }                                     \
     GAnyModule##MODULE_NAME::GAnyModule##MODULE_NAME()
 #else
 #define REGISTER_GANY_MODULE(MODULE_NAME) \
-    class GAnyModule##MODULE_NAME           \
-    {                                       \
-    public:                                 \
-        GAnyModule##MODULE_NAME();          \
-    };                                      \
-    void Register##MODULE_NAME(PFN_ganyGetEnv, PFN_ganyParseJson, PFN_ganyRegisterToEnv, PFN_ganyClassInstance) \
+    class GAnyModule##MODULE_NAME         \
     {                                     \
+    public:                               \
+        GAnyModule##MODULE_NAME();        \
+    };                                    \
+    int32_t Register##MODULE_NAME(int64_t versionCode, PFN_ganyGetEnv, PFN_ganyParseJson, PFN_ganyRegisterToEnv, PFN_ganyClassInstance) \
+    {                                     \
+        if (versionCode != GANY_VERSION_CODE) { \
+            return 1;                     \
+        }                                 \
         static GAnyModule##MODULE_NAME gAnyModule##MODULE_NAME; \
-        gAnyModule##MODULE_NAME;            \
-    }                                       \
+        gAnyModule##MODULE_NAME;          \
+        return 0;                         \
+    }                                     \
     GAnyModule##MODULE_NAME::GAnyModule##MODULE_NAME()
 #endif
+
+#define GANY_VERSION_MAJOR 1
+#define GANY_VERSION_MINOR 0
+#define GANY_VERSION_PATCH 3
+
+// (0 | (GANY_VERSION_PATCH << 16) | ((uint64_t) GANY_VERSION_MINOR << 32) | ((uint64_t) GANY_VERSION_MAJOR << 48))
+#define GANY_VERSION_CODE 0x1000000030000
 
 #define GEnv gx::GAny::environment()
 
@@ -4206,31 +4220,31 @@ inline CppType::CppType(std::type_index typeIndex)
         : mType(typeIndex)
 {
     static std::map<std::type_index, std::pair<int32_t, AnyType>> lut = {
-            {typeid(void), {0, AnyType::undefined_t}},
-            {typeid(nullptr), {1, AnyType::null_t}},
-            {typeid(bool), {2, AnyType::boolean_t}},
-            {typeid(char), {3, AnyType::int8_t}},
-            {typeid(int8_t), {4, AnyType::int8_t}},
-            {typeid(uint8_t), {5, AnyType::int8_t}},
-            {typeid(int16_t), {6, AnyType::int16_t}},
-            {typeid(uint16_t), {7, AnyType::int16_t}},
-            {typeid(int32_t), {8, AnyType::int32_t}},
-            {typeid(uint32_t), {9, AnyType::int32_t}},
-            {typeid(int64_t), {10, AnyType::int64_t}},
-            {typeid(uint64_t), {11, AnyType::int64_t}},
-            {typeid(long), {12, AnyType::int64_t}},
-            {typeid(float), {13, AnyType::float_t}},
-            {typeid(double), {14, AnyType::double_t}},
-            {typeid(std::string), {15, AnyType::string_t}},
-            {typeid(GAnyArray), {16, AnyType::array_t}},
-            {typeid(GAnyObject), {17, AnyType::object_t}},
-            {typeid(GAnyFunction), {18, AnyType::function_t}},
-            {typeid(GAnyClass), {19, AnyType::class_t}},
+            {typeid(void),                    {0,  AnyType::undefined_t}},
+            {typeid(nullptr),                 {1,  AnyType::null_t}},
+            {typeid(bool),                    {2,  AnyType::boolean_t}},
+            {typeid(char),                    {3,  AnyType::int8_t}},
+            {typeid(int8_t),                  {4,  AnyType::int8_t}},
+            {typeid(uint8_t),                 {5,  AnyType::int8_t}},
+            {typeid(int16_t),                 {6,  AnyType::int16_t}},
+            {typeid(uint16_t),                {7,  AnyType::int16_t}},
+            {typeid(int32_t),                 {8,  AnyType::int32_t}},
+            {typeid(uint32_t),                {9,  AnyType::int32_t}},
+            {typeid(int64_t),                 {10, AnyType::int64_t}},
+            {typeid(uint64_t),                {11, AnyType::int64_t}},
+            {typeid(long),                    {12, AnyType::int64_t}},
+            {typeid(float),                   {13, AnyType::float_t}},
+            {typeid(double),                  {14, AnyType::double_t}},
+            {typeid(std::string),             {15, AnyType::string_t}},
+            {typeid(GAnyArray),               {16, AnyType::array_t}},
+            {typeid(GAnyObject),              {17, AnyType::object_t}},
+            {typeid(GAnyFunction),            {18, AnyType::function_t}},
+            {typeid(GAnyClass),               {19, AnyType::class_t}},
             {typeid(GAnyClass::GAnyProperty), {20, AnyType::property_t}},
-            {typeid(GAnyClass::GAnyEnum), {21, AnyType::enum_t}},
-            {typeid(GAnyException), {22, AnyType::exception_t}},
-            {typeid(GAnyCaller), {23, AnyType::caller_t}},
-            {typeid(GAny), {24, AnyType::user_obj_t}}
+            {typeid(GAnyClass::GAnyEnum),     {21, AnyType::enum_t}},
+            {typeid(GAnyException),           {22, AnyType::exception_t}},
+            {typeid(GAnyCaller),              {23, AnyType::caller_t}},
+            {typeid(GAny),                    {24, AnyType::user_obj_t}}
     };
     auto it = lut.find(typeIndex);
     if (it != lut.end()) {

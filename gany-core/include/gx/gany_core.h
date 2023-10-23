@@ -23,25 +23,22 @@
 #ifndef GX_GANY_CORE_H
 #define GX_GANY_CORE_H
 
-#include "gx/base.h"
-#include "gx/gglobal.h"
+#include <gx/gany.h>
 
-#include <string>
-#include <functional>
 
 #define GANY_IMPORT_MODULE(MODULE_NAME) \
-    Register##MODULE_NAME(pfnGanyGetEnv, pfnGanyParseJson, pfnGanyRegisterToEnv, pfnGanyClassInstance)
+    Register##MODULE_NAME(GANY_VERSION_CODE, pfnGanyGetEnv, pfnGanyParseJson, pfnGanyRegisterToEnv, pfnGanyClassInstance)
 
 extern "C" GX_API void GX_API_CALL initGAnyCore();
 
 GX_NS_BEGIN
 
 GX_API void GX_API_CALL setPluginLoaders(const std::string &pluginType,
-                             const std::function<bool(const std::string &, const std::string &)> &func);
+                                         const std::function<bool(const std::string &, const std::string &)> &func);
 
 GX_API void GX_API_CALL setPluginSearchPath(const std::string &path);
 
-GX_API const std::vector<std::string> & GX_API_CALL getPluginSearchPaths();
+GX_API const std::vector<std::string> &GX_API_CALL getPluginSearchPaths();
 
 GX_API bool GX_API_CALL loadPlugin(const std::string &searchPath, const std::string &libName);
 

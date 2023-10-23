@@ -27,6 +27,6 @@
 
 
 #define GANY_MODULE_STATIC_DEF(MODULE_NAME) \
-    extern "C" GX_API void GX_API_CALL Register##MODULE_NAME(PFN_ganyGetEnv pfnGetEnv, PFN_ganyParseJson pfnParseJson, PFN_ganyRegisterToEnv pfnRegisterToEnv, PFN_ganyClassInstance pfnClassInstance)
+    extern "C" GX_API int32_t GX_API_CALL Register##MODULE_NAME(int64_t versionCode, PFN_ganyGetEnv pfnGetEnv, PFN_ganyParseJson pfnParseJson, PFN_ganyRegisterToEnv pfnRegisterToEnv, PFN_ganyClassInstance pfnClassInstance)
 
 #endif //GX_GANY_MODULE_DEF_H
