@@ -239,15 +239,7 @@ bool loadCPlugin(const std::string &searchPath, const std::string &pluginName)
         }
         auto regFunc = (RegisterModuleFunc) regFuncPtr;
         int32_t retCode = regFunc(GANY_VERSION_CODE, pfnGanyGetEnv, pfnGanyParseJson, pfnGanyRegisterToEnv, pfnGanyClassInstance);
-        if (retCode == 1) {
-            std::cerr << "Register module: " << pluginName << " failure. GAny version mismatch!" << std::endl;
-            return false;
-        }
-        if (retCode != 0) {
-            std::cerr << "Register module: " << pluginName << " failure. Unknown error code: " << retCode << std::endl;
-            return false;
-        }
-        return true;
+        return retCode == 0;
     }
     return false;
 }

@@ -70,7 +70,10 @@
     };                                    \
     int32_t Register##MODULE_NAME(int64_t versionCode, PFN_ganyGetEnv pfnGetEnv, PFN_ganyParseJson pfnParseJson, PFN_ganyRegisterToEnv pfnRegisterToEnv, PFN_ganyClassInstance pfnClassInstance) \
     {                                     \
-        if (versionCode != GANY_VERSION_CODE) {  \
+        if (versionCode != GANY_VERSION_CODE) {      \
+            fprintf(stderr, "Register" GX_STRINGIZE(MODULE_NAME) ", GAny version mismatch! code version: %d.%d.%d, module version: %d.%d.%d\n", \
+                (int32_t)((GANY_VERSION_CODE >> 48)&0xffff), (int32_t)((GANY_VERSION_CODE >> 32)&0xffff), (int32_t)((GANY_VERSION_CODE >> 16)&0xffff), \
+                (int32_t)((versionCode >> 48)&0xffff), (int32_t)((versionCode >> 32)&0xffff), (int32_t)((versionCode >> 16)&0xffff)); \
             return 1;                     \
         }                                 \
         pfnGanyGetEnv = pfnGetEnv;        \
@@ -92,6 +95,9 @@
     int32_t Register##MODULE_NAME(int64_t versionCode, PFN_ganyGetEnv, PFN_ganyParseJson, PFN_ganyRegisterToEnv, PFN_ganyClassInstance) \
     {                                     \
         if (versionCode != GANY_VERSION_CODE) { \
+            fprintf(stderr, "Register" GX_STRINGIZE(MODULE_NAME) ", GAny version mismatch! code version: %d.%d.%d, module version: %d.%d.%d\n", \
+                (int32_t)((GANY_VERSION_CODE >> 48)&0xffff), (int32_t)((GANY_VERSION_CODE >> 32)&0xffff), (int32_t)((GANY_VERSION_CODE >> 16)&0xffff), \
+                (int32_t)((versionCode >> 48)&0xffff), (int32_t)((versionCode >> 32)&0xffff), (int32_t)((versionCode >> 16)&0xffff)); \
             return 1;                     \
         }                                 \
         static GAnyModule##MODULE_NAME gAnyModule##MODULE_NAME; \
