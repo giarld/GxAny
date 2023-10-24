@@ -25,7 +25,7 @@
 
 #include "gx/gany_module_def.h"
 
-GANY_MODULE_STATIC_DEF(GAnyC);
+GANY_MODULE_DEFINE(GAnyC);
 
 #ifdef __cplusplus
 extern "C"
