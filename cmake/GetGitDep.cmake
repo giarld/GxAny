@@ -6,6 +6,13 @@ if (NOT GIT_EXECUTABLE)
 endif ()
 
 function(GetGitDependency git_uri dep_path dep_name branch)
+    if (GIT_DEP_${dep_name}_FOUND)
+        message(STATUS "Git dependency ${dep_name} found.")
+        return()
+    endif ()
+
+    set(GIT_DEP_${dep_name}_FOUND TRUE PARENT_SCOPE)
+
     set(DEP_PATH ${dep_path})
     set(DEP_SAVE_PATH ${DEP_PATH}/${dep_name})
 
