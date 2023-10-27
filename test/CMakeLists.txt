@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
 
-# test_gx
 add_executable(TestGAny
         src/test_main.cpp
 
