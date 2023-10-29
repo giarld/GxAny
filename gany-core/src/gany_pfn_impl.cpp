@@ -142,26 +142,26 @@ void ganyRegisterToEnvImpl(void *clazz)
     }
 }
 
-void ganyClassInstanceImpl(void *cppType, void *ret)
+void ganyClassInstanceImpl(void *typeInfo, void *ret)
 {
     static GSpinLock lock;
     static std::unordered_map<StaticString, std::shared_ptr<GAnyClass>> clsMap;
     static std::array<std::shared_ptr<GAnyClass>, 25> basicTypeArray;
 
-    auto *cppTypePtr = reinterpret_cast<CppType *>(cppType);
+    auto *typeInfoPtr = reinterpret_cast<GAnyTypeInfo *>(typeInfo);
     std::shared_ptr<GAnyClass> &cls = *reinterpret_cast<std::shared_ptr<GAnyClass> *>(ret);
 
-    if (cppTypePtr->basicTypeIndex() >= 0) {
-        auto &basicTypeRef = basicTypeArray[cppTypePtr->basicTypeIndex()];
+    if (typeInfoPtr->basicTypeIndex() >= 0) {
+        auto &basicTypeRef = basicTypeArray[typeInfoPtr->basicTypeIndex()];
         if (!basicTypeRef) {
             basicTypeRef = std::shared_ptr<GAnyClass>(
-                    GX_NEW(GAnyClass, "", cppTypePtr->demangleName(), "", *cppTypePtr));
+                    GX_NEW(GAnyClass, "", typeInfoPtr->demangleName(), "", *typeInfoPtr));
         }
         cls = basicTypeRef;
         return;
     }
 
-    StaticString className = cppTypePtr->name();
+    StaticString className = typeInfoPtr->name();
 
     std::lock_guard locker(lock);
     auto it = clsMap.find(className);
@@ -169,7 +169,7 @@ void ganyClassInstanceImpl(void *cppType, void *ret)
         cls = it->second;
         return;
     }
-    cls = std::shared_ptr<GAnyClass>(GX_NEW(GAnyClass, "", cppTypePtr->demangleName(), "", *cppTypePtr));
+    cls = std::shared_ptr<GAnyClass>(GX_NEW(GAnyClass, "", typeInfoPtr->demangleName(), "", *typeInfoPtr));
     clsMap.emplace(className, cls);
 }
 

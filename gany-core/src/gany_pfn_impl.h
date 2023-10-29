@@ -34,7 +34,7 @@ void GX_API_CALL ganyParseJsonImpl(const char *jsonStr, void *ret);
 
 void GX_API_CALL ganyRegisterToEnvImpl(void *clazz);
 
-void GX_API_CALL ganyClassInstanceImpl(void *cppType, void *ret);
+void GX_API_CALL ganyClassInstanceImpl(void *typeInfo, void *ret);
 
 GX_NS_END
 

@@ -30,7 +30,7 @@
 typedef void *(GX_API_PTR *PFN_ganyGetEnv)();
 typedef void (GX_API_PTR *PFN_ganyParseJson)(const char *jsonStr, void *ret);
 typedef void (GX_API_PTR *PFN_ganyRegisterToEnv)(void *clazz);
-typedef void (GX_API_PTR *PFN_ganyClassInstance)(void *cppType, void *ret);
+typedef void (GX_API_PTR *PFN_ganyClassInstance)(void *typeInfo, void *ret);
 
 extern PFN_ganyGetEnv pfnGanyGetEnv;
 extern PFN_ganyParseJson pfnGanyParseJson;

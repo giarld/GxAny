@@ -111,13 +111,13 @@ public:
 public:
 
     /**
-     * get ascii byte count
+     * Get ascii byte count
      * @return byte count
      */
     int32_t count() const;
 
     /**
-     * get utf-8 char length
+     * Get utf-8 char length
      * @return char length
      */
     int32_t length() const;

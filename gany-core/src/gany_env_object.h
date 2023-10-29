@@ -41,7 +41,7 @@ public:
 public:
     const void *as(const TypeID &tp) const override
     {
-        if (CppType::EqualType(tp, typeid(GAnyEnvObject))) {
+        if (GAnyTypeInfo::EqualType(tp, typeid(GAnyEnvObject))) {
             return this;
         }
         return nullptr;

@@ -242,7 +242,7 @@ class GAnyException;
 
 class GAnyCaller;
 
-class CppType;
+class GAnyTypeInfo;
 
 template<typename T>
 class GAnyValueP;
@@ -421,7 +421,7 @@ public:
 
     const std::string &typeName() const;
 
-    CppType cppType() const;
+    GAnyTypeInfo typeInfo() const;
 
     AnyType type() const;
 
@@ -438,7 +438,7 @@ public:
     template<typename T>
     bool is() const;
 
-    bool is(const CppType &cppType) const;
+    bool is(const GAnyTypeInfo &typeInfo) const;
 
     bool is(const std::string &typeStr) const;
 
@@ -945,10 +945,10 @@ private:
 };
 
 
-class CppType
+class GAnyTypeInfo
 {
 public:
-    explicit CppType(std::type_index typeIndex);
+    explicit GAnyTypeInfo(std::type_index typeIndex);
 
 public:
     std::type_index typeIndex() const
@@ -988,10 +988,10 @@ public:
 
     bool isClassGAny() const
     {
-        return mBasicTypeIndex == 24;
+        return mBasicTypeIndex == 0;
     }
 
-    bool operator==(const CppType &rhs) const
+    bool operator==(const GAnyTypeInfo &rhs) const
     {
         return EqualType(this->typeIndex(), rhs.typeIndex());
     }
@@ -1012,29 +1012,29 @@ protected:
 };
 
 template<typename T>
-class CppTypeP : public CppType
+class GAnyTypeInfoP : public GAnyTypeInfo
 {
 public:
-    explicit CppTypeP()
-            : CppType(typeid(T))
+    explicit GAnyTypeInfoP()
+            : GAnyTypeInfo(typeid(T))
     {}
 };
 
 template<typename T>
-struct CppTypeP<std::shared_ptr<T>> : public CppType
+struct GAnyTypeInfoP<std::shared_ptr<T>> : public GAnyTypeInfo
 {
 public:
-    explicit CppTypeP()
-            : CppType(typeid(T))
+    explicit GAnyTypeInfoP()
+            : GAnyTypeInfo(typeid(T))
     {}
 };
 
 template<typename T>
-struct CppTypeP<std::unique_ptr<T>> : public CppType
+struct GAnyTypeInfoP<std::unique_ptr<T>> : public GAnyTypeInfo
 {
 public:
-    explicit CppTypeP()
-            : CppType(typeid(T))
+    explicit GAnyTypeInfoP()
+            : GAnyTypeInfo(typeid(T))
     {}
 };
 
@@ -1146,7 +1146,7 @@ public:
     };
 
     GAnyClass(std::string nameSpace, std::string name, std::string doc,
-              const CppType &cppType = CppTypeP<DynamicClassObject>());
+              const GAnyTypeInfo &typeInfo = GAnyTypeInfoP<DynamicClassObject>());
 
 public:
     GAnyClass &setNameSpace(const std::string &ns);
@@ -1161,6 +1161,9 @@ public:
 
     const std::string &getDoc() const;
 
+    const GAnyTypeInfo &getTypeInfo() const;
+
+public:
     GAnyClass &func(const std::string &name, const GAny &function,
                     const std::string &doc = "", bool isMethod = true);
 
@@ -1270,7 +1273,7 @@ public:
     template<typename T>
     static std::shared_ptr<GAnyClass> instance()
     {
-        return _instance(CppTypeP<T>());
+        return _instance(GAnyTypeInfoP<T>());
     }
 
     template<typename T>
@@ -1335,14 +1338,13 @@ private:
     void updateHash();
 
 private:
-    static std::shared_ptr<GAnyClass> _instance(CppType cppType);
+    static std::shared_ptr<GAnyClass> _instance(GAnyTypeInfo typeInfo);
 
 private:
     std::string mNameSpace;
     std::string mName;
     std::string mDoc;
-    CppType mCppType;
-    AnyType mType;
+    GAnyTypeInfo mTypeInfo;
     size_t mHash;
     std::unordered_map<std::string, GAny> mAttr; // Read only when in use
     GAny fInit;
@@ -1500,7 +1502,7 @@ public:
 
     virtual const void *as(const TypeID &tp) const
     {
-        if (CppType::EqualType(tp, typeid(void))) {
+        if (GAnyTypeInfo::EqualType(tp, typeid(void))) {
             return this;
         }
         return nullptr;
@@ -1548,7 +1550,7 @@ public:
 
     const void *as(const TypeID &tp) const override
     {
-        if (CppType::EqualType(tp, typeid(T))) {
+        if (GAnyTypeInfo::EqualType(tp, typeid(T))) {
             return &var;
         }
         return nullptr;
@@ -1613,9 +1615,9 @@ public:
 
     const void *as(const TypeID &tp) const override
     {
-        if (CppType::EqualType(tp, typeid(T))) {
+        if (GAnyTypeInfo::EqualType(tp, typeid(T))) {
             return var.get();
-        } else if (CppType::EqualType(tp, typeid(std::shared_ptr<T>))) {
+        } else if (GAnyTypeInfo::EqualType(tp, typeid(std::shared_ptr<T>))) {
             return &var;
         }
         return nullptr;
@@ -1649,9 +1651,9 @@ public:
 
     const void *as(const TypeID &tp) const override
     {
-        if (CppType::EqualType(tp, typeid(T))) {
+        if (GAnyTypeInfo::EqualType(tp, typeid(T))) {
             return var.get();
-        } else if (CppType::EqualType(tp, typeid(std::unique_ptr<T>))) {
+        } else if (GAnyTypeInfo::EqualType(tp, typeid(std::unique_ptr<T>))) {
             return &var;
         }
         return nullptr;
@@ -1685,9 +1687,9 @@ public:
 
     const void *as(const TypeID &tp) const override
     {
-        if (CppType::EqualType(tp, typeid(T))) {
+        if (GAnyTypeInfo::EqualType(tp, typeid(T))) {
             return var;
-        } else if (CppType::EqualType(tp, typeid(T *))) {
+        } else if (GAnyTypeInfo::EqualType(tp, typeid(T *))) {
             return &var;
         }
         return nullptr;
@@ -1725,10 +1727,10 @@ public:
 public:
     const void *as(const TypeID &tp) const override
     {
-        if (CppType::EqualType(tp, typeid(GAnyObject))) {
+        if (GAnyTypeInfo::EqualType(tp, typeid(GAnyObject))) {
             return this;
         }
-        if (CppType::EqualType(tp, typeid(std::unordered_map<std::string, GAny>))) {
+        if (GAnyTypeInfo::EqualType(tp, typeid(std::unordered_map<std::string, GAny>))) {
             return &var;
         }
         return nullptr;
@@ -1832,10 +1834,10 @@ public:
 
     const void *as(const TypeID &tp) const override
     {
-        if (CppType::EqualType(tp, typeid(GAnyArray))) {
+        if (GAnyTypeInfo::EqualType(tp, typeid(GAnyArray))) {
             return this;
         }
-        if (CppType::EqualType(tp, typeid(std::vector<GAny>))) {
+        if (GAnyTypeInfo::EqualType(tp, typeid(std::vector<GAny>))) {
             return &var;
         }
         return nullptr;
@@ -2549,14 +2551,14 @@ inline const std::string &GAny::typeName() const
     return anyTypeNames()[(size_t) type()];
 }
 
-inline CppType GAny::cppType() const
+inline GAnyTypeInfo GAny::typeInfo() const
 {
-    return classObject().mCppType;
+    return classObject().mTypeInfo;
 }
 
 inline AnyType GAny::type() const
 {
-    return classObject().mType;
+    return classObject().mTypeInfo.anyType();
 }
 
 inline GAnyClass &GAny::classObject() const
@@ -2580,9 +2582,9 @@ inline size_t GAny::length() const
     return ret.toInt64();
 }
 
-inline bool GAny::is(const CppType &cppType) const
+inline bool GAny::is(const GAnyTypeInfo &typeInfo) const
 {
-    return mVal->as(cppType.typeIndex()) != nullptr;
+    return mVal->as(typeInfo.typeIndex()) != nullptr;
 }
 
 inline bool GAny::is(const std::string &typeStr) const
@@ -3859,7 +3861,7 @@ inline std::ostream &GAny::dumpJson(std::ostream &o, const int indent, const int
         out += '"';
         return out;
     };
-    switch (classObject().mType) {
+    switch (type()) {
         case AnyType::undefined_t: {
             return o;
         }
@@ -3984,7 +3986,7 @@ inline std::ostream &GAny::dumpJson(std::ostream &o, const int indent, const int
             return o << "\"<Class: " << cl.mName << ">\"";
         }
         default: {
-            if (classObject().mType == AnyType::user_obj_t && classObject().containsMember(MetaFunction::ToObject)) {
+            if (type() == AnyType::user_obj_t && classObject().containsMember(MetaFunction::ToObject)) {
                 return toObject().dumpJson(o, indent, current_indent);
             }
 
@@ -4150,7 +4152,7 @@ inline bool GAnyFunction::matchingArgv(const GAny **args, int32_t argc) const
     }
     for (size_t i = 1; i < mArgTypes.size(); i++) {
         const auto &lClazz = mArgTypes[i].as<GAnyClass>();
-        if (lClazz.mCppType.isClassGAny()) {
+        if (lClazz.mTypeInfo.isClassGAny()) {
             continue;
         }
         if (lClazz != args[i - 1]->classObject()) {
@@ -4220,37 +4222,37 @@ void GAnyFunction::initialize(Func &&f, Return (*)(Args...), const std::string &
     };
 }
 
-/// ================ CppType ================
+/// ================ GAnyTypeInfo ================
 
-inline CppType::CppType(std::type_index typeIndex)
+inline GAnyTypeInfo::GAnyTypeInfo(std::type_index typeIndex)
         : mType(typeIndex)
 {
-    static std::map<std::type_index, std::pair<int32_t, AnyType>> lut = {
-            {typeid(void),                    {0,  AnyType::undefined_t}},
-            {typeid(nullptr),                 {1,  AnyType::null_t}},
-            {typeid(bool),                    {2,  AnyType::boolean_t}},
-            {typeid(char),                    {3,  AnyType::int8_t}},
-            {typeid(int8_t),                  {4,  AnyType::int8_t}},
-            {typeid(uint8_t),                 {5,  AnyType::int8_t}},
-            {typeid(int16_t),                 {6,  AnyType::int16_t}},
-            {typeid(uint16_t),                {7,  AnyType::int16_t}},
-            {typeid(int32_t),                 {8,  AnyType::int32_t}},
-            {typeid(uint32_t),                {9,  AnyType::int32_t}},
-            {typeid(int64_t),                 {10, AnyType::int64_t}},
-            {typeid(uint64_t),                {11, AnyType::int64_t}},
-            {typeid(long),                    {12, AnyType::int64_t}},
-            {typeid(float),                   {13, AnyType::float_t}},
-            {typeid(double),                  {14, AnyType::double_t}},
-            {typeid(std::string),             {15, AnyType::string_t}},
-            {typeid(GAnyArray),               {16, AnyType::array_t}},
-            {typeid(GAnyObject),              {17, AnyType::object_t}},
-            {typeid(GAnyFunction),            {18, AnyType::function_t}},
-            {typeid(GAnyClass),               {19, AnyType::class_t}},
-            {typeid(GAnyClass::GAnyProperty), {20, AnyType::property_t}},
-            {typeid(GAnyClass::GAnyEnum),     {21, AnyType::enum_t}},
-            {typeid(GAnyException),           {22, AnyType::exception_t}},
-            {typeid(GAnyCaller),              {23, AnyType::caller_t}},
-            {typeid(GAny),                    {24, AnyType::user_obj_t}}
+    static std::unordered_map<std::type_index, std::pair<int32_t, AnyType>> lut = {
+            {typeid(GAny),                    {0,  AnyType::user_obj_t}},
+            {typeid(void),                    {1,  AnyType::undefined_t}},
+            {typeid(nullptr),                 {2,  AnyType::null_t}},
+            {typeid(bool),                    {3,  AnyType::boolean_t}},
+            {typeid(char),                    {4,  AnyType::int8_t}},
+            {typeid(int8_t),                  {5,  AnyType::int8_t}},
+            {typeid(uint8_t),                 {6,  AnyType::int8_t}},
+            {typeid(int16_t),                 {7,  AnyType::int16_t}},
+            {typeid(uint16_t),                {8,  AnyType::int16_t}},
+            {typeid(int32_t),                 {9,  AnyType::int32_t}},
+            {typeid(uint32_t),                {10, AnyType::int32_t}},
+            {typeid(int64_t),                 {11, AnyType::int64_t}},
+            {typeid(uint64_t),                {12, AnyType::int64_t}},
+            {typeid(long),                    {13, AnyType::int64_t}},
+            {typeid(float),                   {14, AnyType::float_t}},
+            {typeid(double),                  {15, AnyType::double_t}},
+            {typeid(std::string),             {16, AnyType::string_t}},
+            {typeid(GAnyArray),               {17, AnyType::array_t}},
+            {typeid(GAnyObject),              {18, AnyType::object_t}},
+            {typeid(GAnyFunction),            {19, AnyType::function_t}},
+            {typeid(GAnyClass),               {20, AnyType::class_t}},
+            {typeid(GAnyClass::GAnyProperty), {21, AnyType::property_t}},
+            {typeid(GAnyClass::GAnyEnum),     {22, AnyType::enum_t}},
+            {typeid(GAnyException),           {23, AnyType::exception_t}},
+            {typeid(GAnyCaller),              {24, AnyType::caller_t}}
     };
     auto it = lut.find(typeIndex);
     if (it != lut.end()) {
@@ -4271,9 +4273,8 @@ inline GAny GAnyCaller::call(const GAny **args, int32_t argc) const
 
 /// ================ GAnyClass ================
 
-inline GAnyClass::GAnyClass(std::string nameSpace, std::string name, std::string doc, const CppType &cppType)
-        : mNameSpace(std::move(nameSpace)), mName(std::move(name)), mDoc(std::move(doc)),
-          mCppType(cppType), mType(cppType.anyType())
+inline GAnyClass::GAnyClass(std::string nameSpace, std::string name, std::string doc, const GAnyTypeInfo &typeInfo)
+        : mNameSpace(std::move(nameSpace)), mName(std::move(name)), mDoc(std::move(doc)), mTypeInfo(typeInfo)
 {
     updateHash();
 }
@@ -4313,6 +4314,11 @@ inline const std::string &GAnyClass::getDoc() const
     return mDoc;
 }
 
+inline const GAnyTypeInfo &GAnyClass::getTypeInfo() const
+{
+    return mTypeInfo;
+}
+
 inline GAnyClass &GAnyClass::func(const std::string &name, const GAny &function, const std::string &doc, bool isMethod)
 {
     if (name.empty()) {
@@ -4338,7 +4344,7 @@ inline GAnyClass &GAnyClass::func(const std::string &name, const GAny &function,
 
     if (fInit.isUndefined() && name == metaFunctionNames()[(size_t) MetaFunction::Init]) {
         fInit = function;
-        if (mCppType == CppTypeP<DynamicClassObject>()) {
+        if (mTypeInfo == GAnyTypeInfoP<DynamicClassObject>()) {
             makeConstructor(*dest);
         }
     }
@@ -4509,11 +4515,11 @@ inline void GAnyClass::updateHash()
     mHash = hashMerge(mHash, hashOfByte(mName.data(), mName.size()));
 }
 
-inline std::shared_ptr<GAnyClass> GAnyClass::_instance(CppType cppType)
+inline std::shared_ptr<GAnyClass> GAnyClass::_instance(GAnyTypeInfo typeInfo)
 {
     if (pfnGanyClassInstance) {
         std::shared_ptr<GAnyClass> cls;
-        pfnGanyClassInstance(&cppType, &cls);
+        pfnGanyClassInstance(&typeInfo, &cls);
         return cls;
     }
     return nullptr;
