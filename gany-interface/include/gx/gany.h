@@ -558,7 +558,7 @@ public:
     GAnyIteratorItem next() const;
 
 public:
-    GAny *overload(GAny func);
+    GAny &overload(GAny func);
 
     template<typename... Args>
     GAny call(const std::string &function, Args &&... args) const;
@@ -883,7 +883,11 @@ public:
         while (overload) {
             sst << "\n";
             if (!overload->mDoc.empty()) {
-                sst << "  // " << overload->mDoc << "\n";
+                GString doc = overload->mDoc;
+                doc = doc.replace("\n\r", "\n");
+                doc = doc.replace("\r\n", "\n");
+                doc = doc.replace("\n", "\n  // ");
+                sst << "  // " << doc << "\n";
             }
             sst << "  ";
             sst << overload->signature();
@@ -1347,9 +1351,9 @@ private:
     GAnyTypeInfo mTypeInfo;
     size_t mHash;
     std::unordered_map<std::string, GAny> mAttr; // Read only when in use
-    GAny fInit;
-    GAny fGetItem;
-    GAny fSetItem;
+    GAny mInitFn;
+    GAny mGetItemFn;
+    GAny mSetItemFn;
     std::vector<GAny> mParents;
 
     friend class GAny;
@@ -1922,8 +1926,8 @@ public:
         }
 
         GAnyClass &destClass = *GAnyClass::Class < T > ();
-        if (destClass.fInit.isFunction()) {
-            GAny ret = destClass.fInit(var);
+        if (destClass.mInitFn.isFunction()) {
+            GAny ret = destClass.mInitFn(var);
             if (ret.is<T>()) {
                 return ret;
             }
@@ -2801,15 +2805,15 @@ inline GAnyIteratorItem GAny::next() const
     return call("next").as<GAnyIteratorItem>();
 }
 
-inline GAny *GAny::overload(GAny func)
+inline GAny &GAny::overload(GAny func)
 {
     if (!isFunction() || !func.isFunction()) {
-        return nullptr;
+        return *this;
     }
 
     // function with unknown parameters, overload is not supported
     if (!this->as<GAnyFunction>().mDoCheckArgs || !func.as<GAnyFunction>().mDoCheckArgs) {
-        return nullptr;
+        return *this;
     }
 
     auto &rFunc = func.as<GAnyFunction>();
@@ -2831,7 +2835,7 @@ inline GAny *GAny::overload(GAny func)
         *dest = func;
         dest->as<GAnyFunction>().mNext = GAny();
     }
-    return dest;
+    return *dest;
 }
 
 inline GAny GAny::_call(const std::string &function, const GAny **args, int32_t argc) const
@@ -2880,10 +2884,10 @@ inline GAny GAny::_call(const GAny **args, int32_t argc) const
     } else if (isClass()) {
         // constructor
         const auto &cls = as<GAnyClass>();
-        if (!cls.fInit.isFunction()) {
+        if (!cls.mInitFn.isFunction()) {
             throw GAnyException("Class " + cls.mName + " does not have MetaFunc::Init function.");
         }
-        return cls.fInit.as<GAnyFunction>()._call(args, argc);
+        return cls.mInitFn.as<GAnyFunction>()._call(args, argc);
     } else if (isCaller()) {
         return as<GAnyCaller>().call(args, argc);
     }
@@ -4331,7 +4335,7 @@ inline GAnyClass &GAnyClass::func(const std::string &name, const GAny &function,
     }
     GAny *dest = &mAttr[name];
     if (dest->isFunction()) {
-        dest = dest->overload(function);
+        dest = &(dest->overload(function));
         if (dest == nullptr) {
             return *this;
         }
@@ -4342,17 +4346,17 @@ inline GAnyClass &GAnyClass::func(const std::string &name, const GAny &function,
     dest->as<GAnyFunction>().mName = mName + "." + name;
     dest->as<GAnyFunction>().mDoc = doc;
 
-    if (fInit.isUndefined() && name == metaFunctionNames()[(size_t) MetaFunction::Init]) {
-        fInit = function;
+    if (mInitFn.isUndefined() && name == metaFunctionNames()[(size_t) MetaFunction::Init]) {
+        mInitFn = function;
         if (mTypeInfo == GAnyTypeInfoP<DynamicClassObject>()) {
             makeConstructor(*dest);
         }
     }
-    if (fGetItem.isUndefined() && name == metaFunctionNames()[(size_t) MetaFunction::GetItem]) {
-        fGetItem = function;
+    if (mGetItemFn.isUndefined() && name == metaFunctionNames()[(size_t) MetaFunction::GetItem]) {
+        mGetItemFn = function;
     }
-    if (fSetItem.isUndefined() && name == metaFunctionNames()[(size_t) MetaFunction::SetItem]) {
-        fSetItem = function;
+    if (mSetItemFn.isUndefined() && name == metaFunctionNames()[(size_t) MetaFunction::SetItem]) {
+        mSetItemFn = function;
     }
     return *this;
 }
@@ -4688,9 +4692,9 @@ inline GAny GAnyClass::getItem(const GAny &inst, const GAny &i) const
         }
     }
 
-    if (fGetItem.isFunction()) {
+    if (mGetItemFn.isFunction()) {
         try {
-            return fGetItem(inst, i);
+            return mGetItemFn(inst, i);
         } catch (GAnyException &e) {
             sst << e.what();
         }
@@ -4738,9 +4742,9 @@ inline bool GAnyClass::setItem(const GAny &inst, const GAny &i, const GAny &v)
         }
     }
 
-    if (fSetItem.isFunction()) {
+    if (mSetItemFn.isFunction()) {
         try {
-            fSetItem(inst, i, v);
+            mSetItemFn(inst, i, v);
             return true;
         } catch (GAnyException &e) {
             sst << e.what();
