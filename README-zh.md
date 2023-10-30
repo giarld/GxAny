@@ -35,6 +35,36 @@ int main(int argc, char *args[])
 }
 ```
 
+## 像使用JSON一样
+```cpp
+#include <gx/gany_core.h>
+#include <gx/gany.h>
+
+using namespace gx;
+
+int main(int argc, char *args[])
+{
+    initGAnyCore();
+
+    GAny obj = GAny::object();
+    obj["name"] = "Alice";
+    obj["age"] = 28;
+    obj["isStudent"] = false;
+    GAny arr = GAny::array();
+    arr.pushBack(1);
+    arr.pushBack(2);
+    arr.pushBack(3);
+    obj["numbers"] = arr;
+
+    std::cout << obj.toJsonString(2) << std::endl;
+
+    return 0;
+}
+```
+
+## 插件开发示例
+[GxAnyPluginExample](https://github.com/giarld/GxAnyPluginExample)
+
 ## 下载与使用
 ```shell
 git clone git@github.com:giarld/GxAny.git
@@ -51,6 +81,10 @@ target_link_libraries(TARGET_NAME PRIVATE gany-core)
 # 当应用于插件开发时
 target_link_libraries(TARGET_NAME PRIVATE gany-interface)
 ```
+
+## 使用的第三方库
+- [rapidjson](https://github.com/Tencent/rapidjson)
+- [gtest](https://github.com/google/googletest)
 
 ## 许可
 `GxAny` 根据 [MIT许可证](LICENSE.txt) 授权。

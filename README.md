@@ -3,7 +3,7 @@
 
 GxAny is a powerful, flexible, and efficient library that introduces a dynamic typing system to C++. It seamlessly integrates with native C++ types, offers dynamic type reflection, and a series of utility functions, making dynamic typing in C++ straightforward.
 
-## Features:
+## Features
 - **Dynamic Typing**: Switch between C++ static types and dynamic types with ease using GAny.
 - **Type Safety**: While maintaining dynamism, GAny ensures type safety and provides intuitive type conversions.
 - **Dynamic Reflection**: Dynamically reflect classes and functions at runtime, even dynamically extending type functionalities.
@@ -35,6 +35,36 @@ int main(int argc, char *args[])
 }
 ```
 
+## Just like using JSON
+```cpp
+#include <gx/gany_core.h>
+#include <gx/gany.h>
+
+using namespace gx;
+
+int main(int argc, char *args[])
+{
+    initGAnyCore();
+
+    GAny obj = GAny::object();
+    obj["name"] = "Alice";
+    obj["age"] = 28;
+    obj["isStudent"] = false;
+    GAny arr = GAny::array();
+    arr.pushBack(1);
+    arr.pushBack(2);
+    arr.pushBack(3);
+    obj["numbers"] = arr;
+
+    std::cout << obj.toJsonString(2) << std::endl;
+
+    return 0;
+}
+```
+
+## Example of plugin development
+[GxAnyPluginExample](https://github.com/giarld/GxAnyPluginExample)
+
 ## Download & Usage
 ```shell
 git clone git@github.com:giarld/GxAny.git
@@ -51,6 +81,10 @@ target_link_libraries(TARGET_NAME PRIVATE gany-core)
 # When applied for plugin development:
 target_link_libraries(TARGET_NAME PRIVATE gany-interface)
 ```
+
+## Third party libraries used
+- [rapidjson](https://github.com/Tencent/rapidjson)
+- [gtest](https://github.com/google/googletest)
 
 ## License
 `GxAny` is licensed under the [MIT License](LICENSE.txt).
