@@ -79,7 +79,7 @@ add_subdirectory(gany-c-api)
 if (GANY_ENABLE_TEST)
     include(cmake/GetGitDep.cmake)
 
-    GetGitDependency(git@github.com:google/googletest.git ${CMAKE_CURRENT_SOURCE_DIR}/deps gtest v1.14.0)
+    GetGitDependency(git@github.com:google/googletest.git gtest v1.14.0)
     add_subdirectory(deps/gtest)
 
     add_subdirectory(test)

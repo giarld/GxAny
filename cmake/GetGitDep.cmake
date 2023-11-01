@@ -5,7 +5,7 @@ if (NOT GIT_EXECUTABLE)
     endif ()
 endif ()
 
-function(GetGitDependency git_uri dep_path dep_name branch)
+function(GetGitDependency git_uri dep_name branch)
     if (GIT_DEP_${dep_name}_FOUND)
         message(STATUS "Git dependency ${dep_name} found.")
         return()
@@ -13,7 +13,7 @@ function(GetGitDependency git_uri dep_path dep_name branch)
 
     set(GIT_DEP_${dep_name}_FOUND TRUE PARENT_SCOPE)
 
-    set(DEP_PATH ${dep_path})
+    set(DEP_PATH ${CMAKE_SOURCE_DIR}/deps)
     set(DEP_SAVE_PATH ${DEP_PATH}/${dep_name})
 
     file(MAKE_DIRECTORY ${DEP_PATH})
