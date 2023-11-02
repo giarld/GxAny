@@ -905,8 +905,3 @@ bool ganyOperatorLessThan(GAnyPtr a, GAnyPtr b)
         return false;
     }
 }
-
-REGISTER_GANY_MODULE(GAnyC)
-{
-    // Nothing, just register pfn
-}

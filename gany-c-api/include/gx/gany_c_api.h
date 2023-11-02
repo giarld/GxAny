@@ -23,9 +23,8 @@
 #ifndef GX_GANY_C_API_H
 #define GX_GANY_C_API_H
 
-#include "gx/gany_module_def.h"
+#include "gx/gglobal.h"
 
-GANY_MODULE_DEFINE(GAnyC);
 
 #ifdef __cplusplus
 extern "C"

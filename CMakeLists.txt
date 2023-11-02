@@ -65,6 +65,7 @@ if (NOT WIN32)
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL ${T_LIBRARY_OUTPUT_PATH})
 endif ()
 
+option(BUILD_SHARED_LIBS "build shared libs" ON)
 
 option(GANY_ENABLE_TEST "Enable test." ON)
 
