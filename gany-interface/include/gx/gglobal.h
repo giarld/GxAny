@@ -59,10 +59,6 @@
     #define GX_API_ATTR
     #define GX_API_CALL __stdcall
     #define GX_API_PTR  GX_API_CALL
-#elif defined(__ANDROID__) && defined(__ARM_ARCH) && __ARM_ARCH >= 7 && defined(__ARM_32BIT_STATE)
-    #define GX_API_ATTR __attribute__((pcs("aapcs-vfp")))
-    #define GX_API_CALL
-    #define GX_API_PTR  GX_API_ATTR
 #else
     #define GX_API_ATTR
     #define GX_API_CALL
