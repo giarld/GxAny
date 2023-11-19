@@ -62,6 +62,100 @@ int main(int argc, char *args[])
 }
 ```
 
+## Dynamic reflection
+```cpp
+#include <gx/gany.h>
+#include <gx/gany_core.h>
+
+using namespace gx;
+
+class IPair
+{
+public:
+    explicit IPair(int32_t a, int32_t b)
+            : mA(a), mB(b)
+    {}
+
+public:
+    int32_t getA() const
+    {
+        return mA;
+    }
+
+    void setA(int32_t a)
+    {
+        mA = a;
+    }
+
+    int32_t getB() const
+    {
+        return mB;
+    }
+
+    void setB(int32_t b)
+    {
+        mB = b;
+    }
+
+    IPair operator+(const IPair &b)
+    {
+        IPair t = *this;
+        t.mA += b.mA;
+        t.mB += b.mB;
+        return t;
+    }
+
+    std::string toString() const
+    {
+        std::stringstream ss;
+        ss << "[" << mA << "," << mB << "]";
+        return ss.str();
+    }
+
+private:
+    int32_t mA;
+    int32_t mB;
+};
+
+int main(int argc, char *argv[])
+{
+    initGAnyCore();
+
+    Class<IPair>("G", "IPair", "Class IPair.")
+            .construct<int32_t, int32_t>()
+            .func("getA", &IPair::getA)
+            .func("setA", &IPair::setA)
+            .func("getB", &IPair::getB)
+            .func("setB", &IPair::setB)
+            .func(MetaFunction::Addition, &IPair::operator+)
+            .func(MetaFunction::ToString, &IPair::toString)
+            .func(MetaFunction::ToObject, [](IPair &self) {
+                GAny array = GAny::array();
+                array.pushBack(self.getA());
+                array.pushBack(self.getB());
+                return array;
+            })
+            .property("a", &IPair::getA, &IPair::setA)
+            .property("b", &IPair::getB, &IPair::setB);
+
+    auto tIPair = GEnv["G.IPair"];
+    auto pA = tIPair(1, 2);
+    auto pB = tIPair(9, 8);
+
+    pA.set("a", 3);
+    std::cout << "pA.a = " << pA.get<int32_t>("a", 0) << std::endl;
+    std::cout << "pA.b = " << pA.getItem("b") << std::endl;
+
+    pB.call("setB", 5);
+    std::cout << "pB.b = " << pB.call("getB").as<int32_t>() << std::endl;
+
+    auto pC = pA + pB;  // Call Addition
+    std::cout << "pC = " << pC.toString() << std::endl; // Call ToString
+
+    return EXIT_SUCCESS;
+}
+```
+
 ## Example of plugin development
 [GxAnyPluginExample](https://github.com/giarld/GxAnyPluginExample)
 
