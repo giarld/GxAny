@@ -28,7 +28,7 @@
 
 using namespace gx;
 
-DEF_ENUM_5(TestEnum, 0,
+DEF_ENUM_5(TestEnum, uint8_t, 0,
            A,
            B,
            C,
@@ -54,9 +54,9 @@ TEST(GAnyTest, Enum)
 
     // Reflection Enum
     REF_ENUM(TestEnum, "E", "TestEnum.");
-    EXPECT_TRUE(GEnv["E"].contains("TestEnum"));
+    EXPECT_TRUE(GAny::Import("E").contains("TestEnum"));
 
-    auto AnyTestEnum = GEnv["E.TestEnum"];
+    auto AnyTestEnum = GAny::Import("E.TestEnum");
 
     EXPECT_EQ(AnyTestEnum.getItem("A"), TestEnum::A);
     EXPECT_EQ(AnyTestEnum.getItem("B"), TestEnum::B);
@@ -67,7 +67,7 @@ TEST(GAnyTest, Enum)
     // Reflection Flag Enum
     REF_ENUM_FLAGS(TestFlag, "E", "TestFlag.");
 
-    auto AnyTestFlag = GEnv["E.TestFlag"];
+    auto AnyTestFlag = GAny::Import("E.TestFlag");
 
     EXPECT_EQ(AnyTestFlag.getItem("A") | AnyTestFlag.getItem("B"), TestFlag::AB);
     EXPECT_STRCASEEQ((AnyTestFlag.getItem("A") | AnyTestFlag.getItem("B")).toString().c_str(),

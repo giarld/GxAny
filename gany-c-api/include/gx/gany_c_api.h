@@ -81,7 +81,9 @@ GX_API GAnyPtr GX_API_CALL ganyCreateNull();
 
 GX_API void GX_API_CALL ganyDestroy(GAnyPtr any);
 
-GX_API GAnyPtr GX_API_CALL ganyEnvironment();
+GX_API GAnyPtr GX_API_CALL ganyImport(const char *path);
+
+GX_API void GX_API_CALL ganyExport(GAnyPtr clazz);
 
 
 GX_API GAnyPtr GX_API_CALL ganyClone(GAnyPtr any);

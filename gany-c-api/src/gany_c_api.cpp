@@ -44,7 +44,7 @@ static GAny sLogger;
 
 static GAnyPtr ganyCreatePtr(const GAny &v)
 {
-    return reinterpret_cast<GAnyPtr>(new GAny(v));
+    return reinterpret_cast<GAnyPtr>(GX_NEW(GAny, v));
 }
 
 static GAnyString cacheString(std::string &&str)
@@ -59,7 +59,7 @@ static void printLogE(const std::string &log)
 {
     if (sLogger.isUndefined()) {
         try {
-            sLogger = GEnv.getItem("GLog");
+            sLogger = GAny::Import("GLog");
         } catch (GAnyException &) {}
         if (!sLogger.isClass()) {
             sLogger = GAny::null();
@@ -239,12 +239,26 @@ void ganyDestroy(GAnyPtr any)
         return;
     }
     auto *anyPtr = reinterpret_cast<GAny *>(any);
-    delete anyPtr;
+    GX_DELETE(anyPtr);
 }
 
-GAnyPtr ganyEnvironment()
+GAnyPtr ganyImport(const char *path)
 {
-    return ganyCreatePtr(GAny::environment());
+    try {
+        return ganyCreatePtr(GAny::Import(path));
+    } catch (const std::exception &e) {
+        printLogE(e.what());
+        return ganyCreatePtr(GAny::undefined());
+    }
+}
+
+void ganyExport(GAnyPtr clazz)
+{
+    try {
+        GAny::Export(*reinterpret_cast<GAny *>(clazz));
+    } catch (const std::exception &e) {
+        printLogE(e.what());
+    }
 }
 
 

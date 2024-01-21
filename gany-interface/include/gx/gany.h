@@ -32,23 +32,24 @@
 #include "gstring.h"
 #include "gmutex.h"
 
-#include <cstring>
-#include <string>
-#include <utility>
-#include <vector>
-#include <list>
-#include <map>
-#include <unordered_map>
-#include <memory>
-#include <array>
-#include <tuple>
-#include <typeindex>
 #include <algorithm>
+#include <array>
+#include <cstring>
 #include <functional>
 #include <iomanip>
 #include <iostream>
-#include <sstream>
+#include <list>
+#include <map>
 #include <math.h>
+#include <memory>
+#include <sstream>
+#include <stack>
+#include <string>
+#include <tuple>
+#include <typeindex>
+#include <utility>
+#include <unordered_map>
+#include <vector>
 
 
 #if GX_COMPILER_GCC || (GX_COMPILER_CLANG && !GX_PLATFORM_WINDOWS)
@@ -68,7 +69,7 @@
     public:                               \
         GAnyModule##MODULE_NAME();        \
     };                                    \
-    int32_t Register##MODULE_NAME(int64_t versionCode, PFN_ganyGetEnv pfnGetEnv, PFN_ganyParseJson pfnParseJson, PFN_ganyRegisterToEnv pfnRegisterToEnv, PFN_ganyClassInstance pfnClassInstance) \
+    int32_t GX_API_CALL Register##MODULE_NAME(int64_t versionCode, PFN_ganyGetEnv pfnGetEnv, PFN_ganyParseJson pfnParseJson, PFN_ganyRegisterToEnv pfnRegisterToEnv, PFN_ganyClassInstance pfnClassInstance) \
     {                                     \
         if (versionCode != GANY_VERSION_CODE) {      \
             fprintf(stderr, "Register" GX_STRINGIZE(MODULE_NAME) ", GAny version mismatch! code version: %d.%d.%d, module version: %d.%d.%d\n", \
@@ -92,7 +93,7 @@
     public:                               \
         GAnyModule##MODULE_NAME();        \
     };                                    \
-    int32_t Register##MODULE_NAME(int64_t versionCode, PFN_ganyGetEnv, PFN_ganyParseJson, PFN_ganyRegisterToEnv, PFN_ganyClassInstance) \
+    int32_t GX_API_CALL Register##MODULE_NAME(int64_t versionCode, PFN_ganyGetEnv, PFN_ganyParseJson, PFN_ganyRegisterToEnv, PFN_ganyClassInstance) \
     {                                     \
         if (versionCode != GANY_VERSION_CODE) { \
             fprintf(stderr, "Register" GX_STRINGIZE(MODULE_NAME) ", GAny version mismatch! code version: %d.%d.%d, module version: %d.%d.%d\n", \
@@ -113,8 +114,6 @@
 
 // (0 | (GANY_VERSION_PATCH << 16) | ((uint64_t) GANY_VERSION_MINOR << 32) | ((uint64_t) GANY_VERSION_MAJOR << 48))
 #define GANY_VERSION_CODE 0x1000000030000
-
-#define GEnv gx::GAny::environment()
 
 
 GX_NS_BEGIN
@@ -192,7 +191,7 @@ static auto test_call_op(int) -> sfinae_true<decltype(&T::operator())>;
 template<class T>
 static auto test_call_op(long) -> sfinae_false<T>;
 
-template<class T, class T2 =decltype(test_call_op<T>(0))>
+template<class T, class T2 = decltype(test_call_op<T>(0))>
 struct has_call_op_ : public T2
 {
 };
@@ -252,7 +251,7 @@ using GAnyBytePtr = char *;
 using GAnyConstBytePtr = const char *;
 
 
-DEF_ENUM_19(AnyType, 0,
+DEF_ENUM_19(AnyType, uint8_t, 0,
             undefined_t,    ///< undefined (void)
             null_t,         ///< null (nullptr)
             boolean_t,      ///< boolean (bool)
@@ -301,7 +300,7 @@ inline const std::array<std::string, EnumAnyTypeCount> &anyTypeNames()
 }
 
 
-DEF_ENUM_23(MetaFunction, 0,
+DEF_ENUM_23(MetaFunction, uint8_t, 0,
             Init,
             Negate,
             Addition,
@@ -409,8 +408,6 @@ public:
     static GAny undefined();
 
     static GAny null();
-
-    static const GAny environment();
 
 public:
     const std::shared_ptr<GAnyValue> &value() const;
@@ -751,6 +748,10 @@ public:
 
     static GAny parseJson(const std::string &json);
 
+    static const GAny Import(const std::string &path);
+
+    static void Export(GAny clazz);
+
 private:
     std::ostream &dumpJson(std::ostream &o, int indent = -1, int current_indent = 0) const;
 
@@ -762,7 +763,7 @@ private:
 class GAnyException : public std::exception
 {
 public:
-    GAnyException(std::string wt)
+    explicit GAnyException(std::string wt)
             : mWhat(std::move(wt))
     {}
 
@@ -778,6 +779,22 @@ private:
 
 class GAnyFunction
 {
+private:
+    class CallStack
+    {
+    public:
+        void push(const GAnyFunction *f);
+
+        void pop();
+
+        bool empty() const;
+
+        std::string dump(const std::string &e);
+
+    private:
+        std::stack<const GAnyFunction *> mStack;
+    };
+
 public:
     GAnyFunction()
     {}
@@ -852,7 +869,7 @@ public:
     detail::enable_if_t<!std::is_void<Return>::value, GAny>
     call_impl(Func &&f, Return (*)(Args...), const GAny **args, detail::index_sequence<Is...>)
     {
-        return GAny(f(const_cast<GAny *>(args[Is])->castAs<Args>()...));
+        return f(const_cast<GAny *>(args[Is])->castAs<Args>()...);
     }
 
     std::string signature() const;
@@ -923,7 +940,7 @@ private:
     std::string mName;
     std::string mDoc;
     GAny mNext;
-    std::vector<GAny> mArgTypes;
+    std::vector<GAnyClass *> mArgTypes;
 
     std::function<GAny(const GAny **args, int32_t argc)> mFunc;
     bool mIsMethod = false;
@@ -1064,13 +1081,13 @@ public:
                 auto func = fGet.as<GAnyFunction>();
                 if (func.mDoCheckArgs && !func.mArgTypes.empty()) {
                     acqType = true;
-                    dumpObj["type"] = func.mArgTypes[0].as<GAnyClass>().getName();
+                    dumpObj["type"] = func.mArgTypes[0]->getName();
                 }
             }
             if (!acqType && fSet.isFunction()) {
                 auto func = fSet.as<GAnyFunction>();
                 if (func.mDoCheckArgs && func.mArgTypes.size() >= 3) {
-                    dumpObj["type"] = func.mArgTypes[2].as<GAnyClass>().getName();
+                    dumpObj["type"] = func.mArgTypes[2]->getName();
                 }
             }
 
@@ -1244,8 +1261,6 @@ public:
 
     GAnyClass &inherit(const GAny &parent);
 
-    static void registerToEnv(std::shared_ptr<GAnyClass> clazz);
-
 public:
     template<typename... Args>
     GAny call(const GAny &inst, const std::string &function, Args... args) const
@@ -1273,6 +1288,13 @@ public:
      */
     GAny castToBase(const GAnyClass &targetClass, const GAny &inst);
 
+    GAny _new(const GAny **args, int32_t argc) const;
+
+    GAny _new(std::vector<GAny> &args) const;
+
+    template<typename... Args>
+    GAny _new(Args... args) const;
+
 public:
     template<typename T>
     static std::shared_ptr<GAnyClass> instance()
@@ -1290,6 +1312,8 @@ public:
     {
         return std::shared_ptr<GAnyClass>(GX_NEW(GAnyClass, std::move(nameSpace), std::move(name), std::move(doc)));
     }
+
+    void swap(GAnyClass &b);
 
     GAny dump() const;
 
@@ -1328,12 +1352,14 @@ public:
 
     const std::vector<GAny> &getParents() const;
 
-    const std::unordered_map<std::string, GAny> &getAttributes() const;
+    std::unordered_map<std::string, GAny> getAttributes() const;
 
 private:
     void makeConstructor(GAny func);
 
-    GAny getAttr(const std::string &name) const;
+    GAny *getAttr(const std::string &name) const;
+
+    GAny *setAttr(const std::string &name, const GAny &attr);
 
     GAny getItem(const GAny &inst, const GAny &i) const;
 
@@ -1350,7 +1376,8 @@ private:
     std::string mDoc;
     GAnyTypeInfo mTypeInfo;
     size_t mHash;
-    std::unordered_map<std::string, GAny> mAttr; // Read only when in use
+    std::unordered_map<std::string, int32_t> mAttrMap; // Read only when in use
+    mutable std::vector<std::pair<std::string, GAny>> mAttrs;
     GAny mInitFn;
     GAny mGetItemFn;
     GAny mSetItemFn;
@@ -1379,7 +1406,7 @@ public:
         mClazz->setNameSpace(nameSpace);
         mClazz->setName(name);
         mClazz->setDoc(doc);
-        GAnyClass::registerToEnv(mClazz);
+        GAny::Export(mClazz);
     }
 
 public:
@@ -1404,34 +1431,6 @@ public:
     Class &staticFunc(MetaFunction metaFunc, const GAny &function, const std::string &doc = "")
     {
         mClazz->func(metaFunctionNames()[(size_t) metaFunc], function, doc, false);
-        return *this;
-    }
-
-    template<typename Func>
-    Class &func(const std::string &name, Func &&f, const std::string &doc = "")
-    {
-        mClazz->func(name, GAnyFunction(f), doc, true);
-        return *this;
-    }
-
-    template<typename Func>
-    Class &func(MetaFunction metaFunc, Func &&f, const std::string &doc = "")
-    {
-        mClazz->func(metaFunctionNames()[(size_t) metaFunc], GAnyFunction(f), doc, true);
-        return *this;
-    }
-
-    template<typename Func>
-    Class &staticFunc(const std::string &name, Func &&f, const std::string &doc = "")
-    {
-        mClazz->func(name, GAnyFunction(f), doc, false);
-        return *this;
-    }
-
-    template<typename Func>
-    Class &staticFunc(MetaFunction metaFunc, Func &&f, const std::string &doc = "")
-    {
-        mClazz->func(metaFunctionNames()[(size_t) metaFunc], GAnyFunction(f), doc, false);
         return *this;
     }
 
@@ -1519,10 +1518,8 @@ public:
 
     virtual GAnyClass *classObject() const
     {
-        if (clazz) {
-            return clazz;
-        }
-        return clazz = GAnyClass::instance<void>().get();
+        static GAnyClass *clazz = nullptr;
+        return clazz ? clazz : clazz = GAnyClass::instance<void>().get();
     }
 
     virtual size_t length() const
@@ -1534,9 +1531,6 @@ public:
     {
         return GAny();
     }
-
-public:
-    mutable GAnyClass *clazz = nullptr;
 };
 
 
@@ -1567,10 +1561,8 @@ public:
 
     GAnyClass *classObject() const override
     {
-        if (clazz) {
-            return clazz;
-        }
-        return clazz = GAnyClass::instance<T>().get();
+        static GAnyClass *clazz = nullptr;
+        return clazz ? clazz : clazz = GAnyClass::instance<T>().get();
     }
 
     GAny clone() const override
@@ -1606,10 +1598,8 @@ public:
 
     GAnyClass *classObject() const override
     {
-        if (clazz) {
-            return clazz;
-        }
-        return clazz = GAnyClass::instance<T>().get();
+        static GAnyClass *clazz = nullptr;
+        return clazz ? clazz : clazz = GAnyClass::instance<T>().get();
     }
 
     GAny clone() const override
@@ -1647,10 +1637,8 @@ public:
 
     GAnyClass *classObject() const override
     {
-        if (clazz) {
-            return clazz;
-        }
-        return clazz = GAnyClass::instance<T>().get();
+        static GAnyClass *clazz = nullptr;
+        return clazz ? clazz : clazz = GAnyClass::instance<T>().get();
     }
 
     const void *as(const TypeID &tp) const override
@@ -1683,10 +1671,8 @@ public:
 
     GAnyClass *classObject() const override
     {
-        if (clazz) {
-            return clazz;
-        }
-        return clazz = GAnyClass::instance<T>().get();
+        static GAnyClass *clazz = nullptr;
+        return clazz ? clazz : clazz = GAnyClass::instance<T>().get();
     }
 
     const void *as(const TypeID &tp) const override
@@ -1747,10 +1733,7 @@ public:
 
     GAnyClass *classObject() const override
     {
-        if (clazz) {
-            return clazz;
-        }
-        return clazz = GAnyClass::instance<GAnyObject>().get();
+        return clazz ? clazz : clazz = GAnyClass::instance<GAnyObject>().get();
     }
 
     GAny operator[](const std::string &key) const
@@ -1808,6 +1791,7 @@ public:
 
 public:
     mutable GSpinLock lock;
+    mutable GAnyClass *clazz = nullptr;
 };
 
 
@@ -1825,10 +1809,8 @@ public:
 public:
     GAnyClass *classObject() const override
     {
-        if (clazz) {
-            return clazz;
-        }
-        return clazz = GAnyClass::instance<GAnyArray>().get();
+        static GAnyClass *clazz = nullptr;
+        return clazz ? clazz : clazz = GAnyClass::instance<GAnyArray>().get();
     }
 
     size_t length() const override
@@ -2527,14 +2509,6 @@ inline GAny GAny::null()
     return create<std::nullptr_t>(nullptr);
 }
 
-inline const GAny GAny::environment()
-{
-    if (pfnGanyGetEnv) {
-        return *reinterpret_cast<GAny *>(pfnGanyGetEnv());
-    }
-    return GAny::undefined();
-}
-
 inline const std::shared_ptr<GAnyValue> &GAny::value() const
 {
     return mVal;
@@ -2797,6 +2771,9 @@ inline GAny GAny::iterator() const
 
 inline bool GAny::hasNext() const
 {
+    if (isUndefined()) {
+        return false;
+    }
     return call("hasNext").toBool();
 }
 
@@ -2825,17 +2802,12 @@ inline GAny &GAny::overload(GAny func)
         }
         dest = &dest->as<GAnyFunction>().mNext;
     }
-    if (dest->isFunction()) {
-        // overwrite
-        GAny oldNext = dest->as<GAnyFunction>().mNext;
-        *dest = func;
-        dest->as<GAnyFunction>().mNext = oldNext;
-    } else {
-        // overload
+    if (!dest->isFunction()) {
         *dest = func;
         dest->as<GAnyFunction>().mNext = GAny();
     }
-    return *dest;
+
+    return *this;
 }
 
 inline GAny GAny::_call(const std::string &function, const GAny **args, int32_t argc) const
@@ -2884,10 +2856,7 @@ inline GAny GAny::_call(const GAny **args, int32_t argc) const
     } else if (isClass()) {
         // constructor
         const auto &cls = as<GAnyClass>();
-        if (!cls.mInitFn.isFunction()) {
-            throw GAnyException("Class " + cls.mName + " does not have MetaFunc::Init function.");
-        }
-        return cls.mInitFn.as<GAnyFunction>()._call(args, argc);
+        return cls._new(args, argc);
     } else if (isCaller()) {
         return as<GAnyCaller>().call(args, argc);
     }
@@ -3282,7 +3251,7 @@ inline GAny GAny::getItem(const GAny &i) const
                 v = classObject().getItem((*this), i);
             } catch (GAnyException &e) {
                 if (this->isClass() || this->isUserObject()) {
-                    throw e;
+                    throw GAnyException(e);
                 }
                 v = GAny::undefined();
             }
@@ -4022,6 +3991,22 @@ inline GAny GAny::parseJson(const std::string &json)
     return obj;
 }
 
+inline const GAny GAny::Import(const std::string &path)
+{
+    if (pfnGanyGetEnv && !path.empty()) {
+        const GAny env = *reinterpret_cast<GAny *>(pfnGanyGetEnv());
+        return env.getItem(path);
+    }
+    return GAny::undefined();
+}
+
+inline void GAny::Export(GAny clazz)
+{
+    if (pfnGanyRegisterToEnv) {
+        pfnGanyRegisterToEnv(&clazz);
+    }
+}
+
 /// ================ GAnyFunction ================
 
 inline GAnyFunction GAnyFunction::createVariadicFunction(const std::string &name, const std::string &doc,
@@ -4038,17 +4023,24 @@ inline GAnyFunction GAnyFunction::createVariadicFunction(const std::string &name
 
 inline GAny GAnyFunction::_call(const GAny **args, int32_t argc) const
 {
+    thread_local CallStack callStack;
     std::vector<const GAnyFunction *> unmatched;
-    std::vector<std::pair<const GAnyFunction *, GAnyException>> catches;
 
     // [1] perfect match
     for (const GAnyFunction *overload = this; overload != nullptr; overload = &overload->mNext.as<GAnyFunction>()) {
         if (overload->matchingArgv(args, argc)) {
             try {
-                return overload->mFunc(args, argc);
+                callStack.push(this);
+                GAny ret = overload->mFunc(args, argc);
+                callStack.pop();
+                return ret;
             }
-            catch (GAnyException &e) {
-                catches.emplace_back(overload, e);
+            catch (std::exception &e) {
+                if (callStack.empty()) {
+                    throw GAnyException(e.what());
+                } else {
+                    throw GAnyException(callStack.dump(e.what()));
+                }
             }
             break;
         } else if (!overload->mDoCheckArgs || (overload->mArgTypes.size() == argc + 1)) {
@@ -4060,48 +4052,37 @@ inline GAny GAnyFunction::_call(const GAny **args, int32_t argc) const
         }
     }
 
+    std::string lastException;
     // [2] fuzzy matching
     for (const GAnyFunction *overload: unmatched) {
         try {
-            return overload->mFunc(args, argc);
+            callStack.push(this);
+            GAny ret = overload->mFunc(args, argc);
+            callStack.pop();
+            return ret;
         }
-        catch (GAnyException &e) {
-            catches.emplace_back(overload, e);
-        }
-    }
-
-
-    std::stringstream stream;
-    stream << "Failed to call " << (mIsMethod ? "method" : "function") << " with input arguments: [";
-
-    for (int32_t i = 0; i < argc; i++) {
-        stream << (i == 0 ? "" : ",") << args[i]->classTypeName();
-    }
-    stream << "].\nAt: " << (*this);
-
-    if (!catches.empty()) {
-        stream << "\n" << "Caused by:";
-
-        for (auto it = catches.begin(); it != catches.end(); it++) {
-            stream << "\n";
-            stream << "Attempt to call: \"" << it->first->signature()
-                   << "\" failed, Exception:\n";
-
-            std::stringstream nextExcept;
-            nextExcept << it->second.what();
-            std::string line;
-            int32_t lineC = 0;
-            while (std::getline(nextExcept, line)) {
-                if (lineC > 0) {
-                    stream << "\n";
-                }
-                lineC++;
-                stream << "  " << line;
+        catch (std::exception &e) {
+            if (callStack.empty()) {
+                lastException = e.what();
+            } else {
+                lastException = callStack.dump(e.what());
             }
         }
     }
 
-    throw GAnyException(stream.str());
+    if (!lastException.empty()) {
+        throw GAnyException(lastException);
+    } else {
+        std::stringstream exStream;
+        exStream << "Failed to call function with input arguments: [";
+
+        for (int32_t i = 0; i < argc; i++) {
+            exStream << (i == 0 ? "" : ",") << args[i]->classTypeName();
+        }
+        exStream << "]. ";
+        callStack.push(this);
+        throw GAnyException(callStack.dump(exStream.str()));
+    }
     return GAny::undefined();
 }
 
@@ -4110,7 +4091,12 @@ inline std::string GAnyFunction::signature() const
     std::stringstream sst;
 
     if (!mDoCheckArgs) {
-        sst << (mName.empty() ? "function" : mName) << "(...)";
+        sst << (mName.empty() ? "function" : mName);
+        if (mIsMethod) {
+            sst << "(self, ...)";
+        } else {
+            sst << "(...)";
+        }
         return sst.str();
     }
     sst << (mName.empty() ? "function" : mName) << "(";
@@ -4119,13 +4105,13 @@ inline std::string GAnyFunction::signature() const
             sst << "self" << (i + 1 == mArgTypes.size() ? "" : ", ");
         } else {
             sst << "arg" << i - 1 << ": ";
-            sst << mArgTypes[i].as<GAnyClass>().getName()
+            sst << mArgTypes[i]->getName()
                 << (i + 1 == mArgTypes.size() ? "" : ", ");
         }
     }
 
     sst << ") -> ";
-    sst << mArgTypes[0].as<GAnyClass>().getName();
+    sst << mArgTypes[0]->getName();
 
     return sst.str();
 }
@@ -4139,7 +4125,7 @@ inline bool GAnyFunction::compareArgs(const GAnyFunction &rFunc) const
         return false;
     }
     for (size_t i = 1; i < mArgTypes.size(); i++) {
-        if (mArgTypes[i].as<GAnyClass>() != rFunc.mArgTypes[i].as<GAnyClass>()) {
+        if (*(mArgTypes[i]) != *(rFunc.mArgTypes[i])) {
             return false;
         }
     }
@@ -4155,7 +4141,7 @@ inline bool GAnyFunction::matchingArgv(const GAny **args, int32_t argc) const
         return false;
     }
     for (size_t i = 1; i < mArgTypes.size(); i++) {
-        const auto &lClazz = mArgTypes[i].as<GAnyClass>();
+        const auto &lClazz = *mArgTypes[i];
         if (lClazz.mTypeInfo.isClassGAny()) {
             continue;
         }
@@ -4180,7 +4166,7 @@ inline GAny GAnyFunction::dump() const
         overloads.pushBack(ovi);
         ovi["doc"] = overload->mDoc;
         if (overload->mDoCheckArgs) {
-            ovi["return"] = overload->mArgTypes[0].as<GAnyClass>().getName();
+            ovi["return"] = overload->mArgTypes[0]->getName();
             GAny args = GAny::array();
             ovi["args"] = args;
             for (size_t i = 1; i < overload->mArgTypes.size(); i++) {
@@ -4188,12 +4174,12 @@ inline GAny GAnyFunction::dump() const
                 if (overload->mIsMethod && i == 1 &&
                     mName.substr(0, 6) != metaFunctionNames()[(size_t) MetaFunction::Init]) {
                     arg["key"] = "self";
-                    arg["type"] = overload->mArgTypes[i].as<GAnyClass>().getName();
+                    arg["type"] = overload->mArgTypes[i]->getName();
                 } else {
                     std::stringstream argNameSS;
                     argNameSS << "arg" << i - 1;
                     arg["key"] = argNameSS.str();
-                    arg["type"] = overload->mArgTypes[i].as<GAnyClass>().getName();
+                    arg["type"] = overload->mArgTypes[i]->getName();
                 }
                 args.pushBack(arg);
             }
@@ -4216,7 +4202,7 @@ inline GAny GAnyFunction::dump() const
 template<typename Func, typename Return, typename... Args>
 void GAnyFunction::initialize(Func &&f, Return (*)(Args...), const std::string &doc)
 {
-    this->mArgTypes = {GAnyClass::instance<Return>(), GAnyClass::instance<Args>()...};
+    this->mArgTypes = {GAnyClass::instance<Return>().get(), GAnyClass::instance<Args>().get()...};
     this->mDoc = doc;
 
     this->mFunc = [this, f](const GAny **args, int32_t argc) -> GAny {
@@ -4226,44 +4212,120 @@ void GAnyFunction::initialize(Func &&f, Return (*)(Args...), const std::string &
     };
 }
 
+/// ================ GAnyFunction::CallStack ================
+
+inline void GAnyFunction::CallStack::push(const GAnyFunction *f)
+{
+    mStack.push(f);
+}
+
+inline void GAnyFunction::CallStack::pop()
+{
+    mStack.pop();
+}
+
+inline bool GAnyFunction::CallStack::empty() const
+{
+    return mStack.empty();
+}
+
+inline std::string GAnyFunction::CallStack::dump(const std::string &e)
+{
+    std::stringstream stream;
+    stream << "Exception: \n" << e;
+
+    while(!mStack.empty()) {
+        auto *f = mStack.top();
+        mStack.pop();
+
+        stream << "\n    at " << f->signature();
+    }
+
+    return stream.str();
+}
+
 /// ================ GAnyTypeInfo ================
 
 inline GAnyTypeInfo::GAnyTypeInfo(std::type_index typeIndex)
         : mType(typeIndex)
 {
-    static std::unordered_map<std::type_index, std::pair<int32_t, AnyType>> lut = {
-            {typeid(GAny),                    {0,  AnyType::user_obj_t}},
-            {typeid(void),                    {1,  AnyType::undefined_t}},
-            {typeid(nullptr),                 {2,  AnyType::null_t}},
-            {typeid(bool),                    {3,  AnyType::boolean_t}},
-            {typeid(char),                    {4,  AnyType::int8_t}},
-            {typeid(int8_t),                  {5,  AnyType::int8_t}},
-            {typeid(uint8_t),                 {6,  AnyType::int8_t}},
-            {typeid(int16_t),                 {7,  AnyType::int16_t}},
-            {typeid(uint16_t),                {8,  AnyType::int16_t}},
-            {typeid(int32_t),                 {9,  AnyType::int32_t}},
-            {typeid(uint32_t),                {10, AnyType::int32_t}},
-            {typeid(int64_t),                 {11, AnyType::int64_t}},
-            {typeid(uint64_t),                {12, AnyType::int64_t}},
-            {typeid(long),                    {13, AnyType::int64_t}},
-            {typeid(float),                   {14, AnyType::float_t}},
-            {typeid(double),                  {15, AnyType::double_t}},
-            {typeid(std::string),             {16, AnyType::string_t}},
-            {typeid(GAnyArray),               {17, AnyType::array_t}},
-            {typeid(GAnyObject),              {18, AnyType::object_t}},
-            {typeid(GAnyFunction),            {19, AnyType::function_t}},
-            {typeid(GAnyClass),               {20, AnyType::class_t}},
-            {typeid(GAnyClass::GAnyProperty), {21, AnyType::property_t}},
-            {typeid(GAnyClass::GAnyEnum),     {22, AnyType::enum_t}},
-            {typeid(GAnyException),           {23, AnyType::exception_t}},
-            {typeid(GAnyCaller),              {24, AnyType::caller_t}}
-    };
-    auto it = lut.find(typeIndex);
-    if (it != lut.end()) {
-        const auto &iti = it->second;
-        mBasicTypeIndex = iti.first;
-        mAnyType = iti.second;
+    if (EqualType(typeIndex, typeid(GAny))) {
+        mBasicTypeIndex = 0;
+        mAnyType = AnyType::user_obj_t;
+    } else if (EqualType(typeIndex, typeid(void))) {
+        mBasicTypeIndex = 1;
+        mAnyType = AnyType::undefined_t;
+    } else if (EqualType(typeIndex, typeid(nullptr))) {
+        mBasicTypeIndex = 2;
+        mAnyType = AnyType::null_t;
+    } else if (EqualType(typeIndex, typeid(bool))) {
+        mBasicTypeIndex = 3;
+        mAnyType = AnyType::boolean_t;
+    } else if (EqualType(typeIndex, typeid(char))) {
+        mBasicTypeIndex = 4;
+        mAnyType = AnyType::int8_t;
+    } else if (EqualType(typeIndex, typeid(int8_t))) {
+        mBasicTypeIndex = 5;
+        mAnyType = AnyType::int8_t;
+    } else if (EqualType(typeIndex, typeid(uint8_t))) {
+        mBasicTypeIndex = 6;
+        mAnyType = AnyType::int8_t;
+    } else if (EqualType(typeIndex, typeid(int16_t))) {
+        mBasicTypeIndex = 7;
+        mAnyType = AnyType::int16_t;
+    } else if (EqualType(typeIndex, typeid(uint16_t))) {
+        mBasicTypeIndex = 8;
+        mAnyType = AnyType::int16_t;
+    } else if (EqualType(typeIndex, typeid(int32_t))) {
+        mBasicTypeIndex = 9;
+        mAnyType = AnyType::int32_t;
+    } else if (EqualType(typeIndex, typeid(uint32_t))) {
+        mBasicTypeIndex = 10;
+        mAnyType = AnyType::int32_t;
+    } else if (EqualType(typeIndex, typeid(int64_t))) {
+        mBasicTypeIndex = 11;
+        mAnyType = AnyType::int64_t;
+    } else if (EqualType(typeIndex, typeid(uint64_t))) {
+        mBasicTypeIndex = 12;
+        mAnyType = AnyType::int64_t;
+    } else if (EqualType(typeIndex, typeid(long))) {
+        mBasicTypeIndex = 13;
+        mAnyType = AnyType::int64_t;
+    } else if (EqualType(typeIndex, typeid(float))) {
+        mBasicTypeIndex = 14;
+        mAnyType = AnyType::float_t;
+    } else if (EqualType(typeIndex, typeid(double))) {
+        mBasicTypeIndex = 15;
+        mAnyType = AnyType::double_t;
+    } else if (EqualType(typeIndex, typeid(std::string))) {
+        mBasicTypeIndex = 16;
+        mAnyType = AnyType::string_t;
+    } else if (EqualType(typeIndex, typeid(GAnyArray))) {
+        mBasicTypeIndex = 17;
+        mAnyType = AnyType::array_t;
+    } else if (EqualType(typeIndex, typeid(GAnyObject))) {
+        mBasicTypeIndex = 18;
+        mAnyType = AnyType::object_t;
+    } else if (EqualType(typeIndex, typeid(GAnyFunction))) {
+        mBasicTypeIndex = 19;
+        mAnyType = AnyType::function_t;
+    } else if (EqualType(typeIndex, typeid(GAnyClass))) {
+        mBasicTypeIndex = 20;
+        mAnyType = AnyType::class_t;
+    } else if (EqualType(typeIndex, typeid(GAnyClass::GAnyProperty))) {
+        mBasicTypeIndex = 21;
+        mAnyType = AnyType::property_t;
+    } else if (EqualType(typeIndex, typeid(GAnyClass::GAnyEnum))) {
+        mBasicTypeIndex = 22;
+        mAnyType = AnyType::enum_t;
+    } else if (EqualType(typeIndex, typeid(GAnyException))) {
+        mBasicTypeIndex = 23;
+        mAnyType = AnyType::exception_t;
+    } else if (EqualType(typeIndex, typeid(GAnyCaller))) {
+        mBasicTypeIndex = 24;
+        mAnyType = AnyType::caller_t;
     } else {
+        mBasicTypeIndex = -1;
         mAnyType = AnyType::user_obj_t;
     }
 }
@@ -4326,21 +4388,31 @@ inline const GAnyTypeInfo &GAnyClass::getTypeInfo() const
 inline GAnyClass &GAnyClass::func(const std::string &name, const GAny &function, const std::string &doc, bool isMethod)
 {
     if (name.empty()) {
-        throw GAnyException("GAnyClass::def function name cannot be empty.");
+        assert(false && "Function name cannot be empty.");
         return *this;
     }
     if (!function.isFunction()) {
-        throw GAnyException("GAnyClass::def function must be a function.");
+        assert(false && "Function must be a function.");
         return *this;
     }
-    GAny *dest = &mAttr[name];
-    if (dest->isFunction()) {
-        dest = &(dest->overload(function));
-        if (dest == nullptr) {
-            return *this;
+    GAny *dest = getAttr(name);
+    if (dest) {
+        if (dest && dest->isFunction()) {
+            dest = &(dest->overload(function));
+            if (dest == nullptr) {
+                return *this;
+            }
+        } else {
+            dest = nullptr;
         }
     } else {
-        *dest = function;
+        if (!dest) {
+            dest = setAttr(name, function);
+        }
+    }
+    if (!dest) {    // This situation occurs when a non function member with the same name already exists
+//        assert(false && "The member name is already in use.");
+        return *this;
     }
     dest->as<GAnyFunction>().mIsMethod = isMethod;
     dest->as<GAnyFunction>().mName = mName + "." + name;
@@ -4379,24 +4451,24 @@ inline GAnyClass &GAnyClass::staticFunc(MetaFunction metaFunc, const GAny &funct
 inline GAnyClass &GAnyClass::property(const std::string &name, const GAny &fGet, const GAny &fSet,
                                       const std::string &doc)
 {
-    mAttr[name] = GAnyProperty(name, doc, fGet, fSet);
+    setAttr(name, GAnyProperty(name, doc, fGet, fSet));
     return *this;
 }
 
 inline GAnyClass &GAnyClass::defEnum(const std::string &name, const GAny &enumObj, const std::string &doc)
 {
     if (!enumObj.isObject()) {
-        throw GAnyException("EnumObj must be an object");
+        assert(false && "EnumObj must be an object");
         return *this;
     }
-    mAttr[name] = GAnyEnum(name, doc, enumObj);
+    if (!setAttr(name, GAnyEnum(name, doc, enumObj))) {
+//        assert(false && "The member name is already in use.");
+        return *this;
+    }
     // Expand enumeration into a class attribute table.
     auto enumMap = enumObj.castAs<std::unordered_map<std::string, GAny>>();
     for (const auto &item: enumMap) {
-        auto it = mAttr.find(item.first);
-        if (it == mAttr.end()) {
-            mAttr[item.first] = item.second;
-        }
+        setAttr(item.first, item.second);
     }
     return *this;
 }
@@ -4409,21 +4481,14 @@ inline GAnyClass &GAnyClass::inherit(const GAny &parent)
     return *this;
 }
 
-inline void GAnyClass::registerToEnv(std::shared_ptr<GAnyClass> clazz)
-{
-    if (pfnGanyRegisterToEnv) {
-        pfnGanyRegisterToEnv(&clazz);
-    }
-}
-
 inline GAny GAnyClass::_call(const GAny &inst, const std::string &function, const GAny **args, int32_t argc) const
 {
     std::stringstream sst;
 
-    GAny attr = getAttr(function);
-    if (attr.isFunction()) {
+    GAny *attr = getAttr(function);
+    if (attr && attr->isFunction()) {
         try {
-            const auto &func = attr.as<GAnyFunction>();
+            const auto &func = attr->as<GAnyFunction>();
             if (func.mIsMethod) {
                 if (inst.isUndefined()) {
                     throw GAnyException("Method should be called with self.");
@@ -4513,6 +4578,41 @@ inline GAny GAnyClass::castToBase(const GAnyClass &targetClass, const GAny &inst
     return GAny::undefined();
 }
 
+inline GAny GAnyClass::_new(const GAny **args, int32_t argc) const
+{
+    if (!mInitFn.isFunction()) {
+        throw GAnyException("Class " + mName + " does not have MetaFunc::Init function.");
+    }
+    return mInitFn.as<GAnyFunction>()._call(args, argc);
+}
+
+inline GAny GAnyClass::_new(std::vector<GAny> &args) const
+{
+    auto tArgc = (int32_t) args.size();
+    const GAny **tArgs = (const GAny **) alloca(sizeof(GAny *) * tArgc);
+    for (int32_t i = 0; i < tArgc; i++) {
+        tArgs[i] = &args.begin()[i];
+    }
+
+    return _new(tArgs, tArgc);
+}
+
+template<typename... Args>
+GAny GAnyClass::_new(Args... args) const
+{
+    std::initializer_list<GAny> argv = {
+            (GAny(std::move(args)))...
+    };
+
+    auto tArgc = (int32_t) argv.size();
+    const GAny **tArgs = (const GAny **) alloca(sizeof(GAny *) * tArgc);
+    for (int32_t i = 0; i < tArgc; i++) {
+        tArgs[i] = &argv.begin()[i];
+    }
+
+    return _new(tArgs, tArgc);
+}
+
 inline void GAnyClass::updateHash()
 {
     mHash = hashOfByte(mNameSpace.data(), mNameSpace.size());
@@ -4531,8 +4631,8 @@ inline std::shared_ptr<GAnyClass> GAnyClass::_instance(GAnyTypeInfo typeInfo)
 
 inline bool GAnyClass::containsMember(const std::string &name) const
 {
-    GAny attr = getAttr(name);
-    if (attr.isProperty() || attr.isFunction() || attr.isEnum()) {
+    GAny *attr = getAttr(name);
+    if (attr && (attr->isProperty() || attr->isFunction() || attr->isEnum())) {
         return true;
     }
 
@@ -4554,7 +4654,8 @@ inline bool GAnyClass::containsMember(const std::string &name) const
 
 inline GAny GAnyClass::findMember(const std::string &name) const
 {
-    GAny attr = getAttr(name);
+    GAny *attrPtr = getAttr(name);
+    GAny attr = attrPtr ? *attrPtr : GAny::undefined();
     if (!attr.isUndefined()) {
         return attr;
     }
@@ -4577,9 +4678,13 @@ inline const std::vector<GAny> &GAnyClass::getParents() const
     return mParents;
 }
 
-inline const std::unordered_map<std::string, GAny> &GAnyClass::getAttributes() const
+inline std::unordered_map<std::string, GAny> GAnyClass::getAttributes() const
 {
-    return mAttr;
+    std::unordered_map<std::string, GAny> attrs;
+    for (const auto &item: mAttrs) {
+        attrs[item.first] = item.second;
+    }
+    return attrs;
 }
 
 inline GAny GAnyClass::dump() const
@@ -4605,33 +4710,21 @@ inline GAny GAnyClass::dump() const
         }
     }
 
-    if (!this->mAttr.empty()) {
+    if (!this->mAttrs.empty()) {
         std::vector<std::pair<std::string, GAny>> mFunctions;
         std::vector<std::pair<std::string, GAny>> mProperties;
         std::vector<std::pair<std::string, GAny>> mEnums;
 
-        for (std::pair<std::string, GAny> it: this->mAttr) {
-            if (it.second.isFunction()) {
-                mFunctions.push_back(it);
-            } else if (it.second.isProperty()) {
-                mProperties.push_back(it);
-            } else if (it.second.isEnum()) {
-                mEnums.push_back(it);
+        for (const auto &it: mAttrs) {
+            const auto &attr = it.second;
+            if (attr.isFunction()) {
+                mFunctions.emplace_back(it.first, attr);
+            } else if (attr.isProperty()) {
+                mProperties.emplace_back(it.first, attr);
+            } else if (attr.isEnum()) {
+                mEnums.emplace_back(it.first, attr);
             }
         }
-
-        std::sort(mFunctions.begin(), mFunctions.end(),
-                  [](const std::pair<std::string, GAny> &a, const std::pair<std::string, GAny> &b) {
-                      return GString(a.first).toLower() < GString(b.first).toLower();
-                  });
-        std::sort(mProperties.begin(), mProperties.end(),
-                  [](const std::pair<std::string, GAny> &a, const std::pair<std::string, GAny> &b) {
-                      return GString(a.first).toLower() < GString(b.first).toLower();
-                  });
-        std::sort(mEnums.begin(), mEnums.end(),
-                  [](const std::pair<std::string, GAny> &a, const std::pair<std::string, GAny> &b) {
-                      return GString(a.first).toLower() < GString(b.first).toLower();
-                  });
 
         GAny methods = GAny::array();
         dumpObj["methods"] = methods;
@@ -4654,23 +4747,54 @@ inline GAny GAnyClass::dump() const
     return dumpObj;
 }
 
-inline GAny GAnyClass::getAttr(const std::string &name) const
+inline void GAnyClass::swap(GAnyClass &b)
 {
-    auto it = mAttr.find(name);
-    if (it != mAttr.end()) {
-        return it->second;
+    if (&b == this) {
+        return;
     }
-    return GAny::undefined();
+    std::swap(mNameSpace, b.mNameSpace);
+    std::swap(mName, b.mName);
+    std::swap(mDoc, b.mDoc);
+    std::swap(mTypeInfo, b.mTypeInfo);
+    std::swap(mHash, b.mHash);
+    std::swap(mAttrMap, b.mAttrMap);
+    std::swap(mAttrs, b.mAttrs);
+    std::swap(mInitFn, b.mInitFn);
+    std::swap(mGetItemFn, b.mGetItemFn);
+    std::swap(mSetItemFn, b.mSetItemFn);
+    std::swap(mParents, b.mParents);
+}
+
+inline GAny *GAnyClass::getAttr(const std::string &name) const
+{
+    auto it = mAttrMap.find(name);
+    if (it != mAttrMap.end()) {
+        return &(mAttrs.at(it->second).second);
+    }
+    return nullptr;
+}
+
+inline GAny *GAnyClass::setAttr(const std::string &name, const GAny &attr)
+{
+    if (mAttrMap.find(name) != mAttrMap.end()) {
+        return nullptr;
+    }
+    mAttrs.emplace_back(name, attr);
+    mAttrMap[name] = (int32_t) mAttrs.size() - 1;
+    return &(mAttrs.back().second);
 }
 
 inline GAny GAnyClass::getItem(const GAny &inst, const GAny &i) const
 {
     std::stringstream sst;
 
-    if (i.isString()) {
-        GAny attr = getAttr(i.toString());
-        if (attr.isProperty()) {
-            auto &fGet = attr.as<GAnyClass::GAnyProperty>().fGet;
+    while (i.isString()) {
+        GAny *attr = getAttr(i.toString());
+        if (!attr) {
+            break;
+        }
+        if (attr->isProperty()) {
+            auto &fGet = attr->as<GAnyClass::GAnyProperty>().fGet;
             if (fGet.isFunction()) {
                 try {
                     return fGet(inst);
@@ -4678,18 +4802,19 @@ inline GAny GAnyClass::getItem(const GAny &inst, const GAny &i) const
                     sst << e.what();
                 }
             }
-        } else if (attr.isEnum()) {
+        } else if (attr->isEnum()) {
             try {
-                return attr.as<GAnyClass::GAnyEnum>().enumObj;
+                return attr->as<GAnyClass::GAnyEnum>().enumObj;
             } catch (GAnyException &e) {
                 sst << e.what();
             }
-        } else if (attr.isFunction()) {
-            if (attr.as<GAnyFunction>().mIsMethod) {
+        } else if (attr->isFunction()) {
+            if (attr->as<GAnyFunction>().mIsMethod) {
                 return GAnyCaller(inst, i.toString());
             }
-            return attr;
+            return *attr;
         }
+        break;
     }
 
     if (mGetItemFn.isFunction()) {
@@ -4727,10 +4852,13 @@ inline bool GAnyClass::setItem(const GAny &inst, const GAny &i, const GAny &v)
 {
     std::stringstream sst;
 
-    if (i.isString()) {
-        GAny attr = getAttr(i.toString());
-        if (attr.isProperty()) {
-            auto &fSet = attr.as<GAnyClass::GAnyProperty>().fSet;
+    while (i.isString()) {
+        GAny *attr = getAttr(i.toString());
+        if (!attr) {
+            break;
+        }
+        if (attr->isProperty()) {
+            auto &fSet = attr->as<GAnyClass::GAnyProperty>().fSet;
             if (fSet.isFunction()) {
                 try {
                     fSet(inst, v);
@@ -4740,6 +4868,7 @@ inline bool GAnyClass::setItem(const GAny &inst, const GAny &i, const GAny &v)
                 }
             }
         }
+        break;
     }
 
     if (mSetItemFn.isFunction()) {

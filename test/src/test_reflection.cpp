@@ -82,7 +82,7 @@ TEST(GAnyReflectionTest, ReflectionWithGAnyClass)
             }, "An example enum");
 
     // Create MyClass object using reflection
-    auto MyType = GEnv["MyNamespace.MyClass"];
+    auto MyType = GAny::Import("MyNamespace.MyClass");
     auto myObj = MyType(10);  // Initialize to 10 using constructor
 
     // Get and set the value of MyClass using reflection
@@ -141,10 +141,10 @@ TEST(GAnyReflectionTest, DirectTypeCreationWithGAnyClass)
                     }, "An example enum for DynamicType");
 
     // Register the dynamically created type to GEnv
-    GAnyClass::registerToEnv(DynamicType);
+    GAny::Export(DynamicType);
 
     // Create an instance of the dynamically created type using the constructor
-    auto tDynamicType = GEnv["DynamicType"];
+    auto tDynamicType = GAny::Import("DynamicType");
     auto dynObj = tDynamicType(10, 20);  // Initialize x with 10 and y with 20
 
     // Use the instance to call functions and access properties

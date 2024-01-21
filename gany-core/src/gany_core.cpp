@@ -147,7 +147,7 @@ std::vector<std::string> &pluginSearchPaths()
     return sPluginSearchPaths;
 }
 
-void setPluginLoaders(const std::string &pluginType,
+void GX_API_CALL setPluginLoaders(const std::string &pluginType,
                       const std::function<bool(const std::string &, const std::string &)> &func)
 {
     loadPluginFuncs().setItem(pluginType, func);
@@ -155,7 +155,7 @@ void setPluginLoaders(const std::string &pluginType,
 
 /// ================ Tool function ================
 
-void setPluginSearchPath(const std::string &path)
+void GX_API_CALL setPluginSearchPath(const std::string &path)
 {
     if (!fileExists(path)) {
         return;
@@ -172,7 +172,7 @@ void setPluginSearchPath(const std::string &path)
     searchPaths.push_back(absPath);
 }
 
-const std::vector<std::string> &getPluginSearchPaths()
+const std::vector<std::string> &GX_API_CALL getPluginSearchPaths()
 {
     return pluginSearchPaths();
 }
@@ -263,7 +263,7 @@ bool _loadPlugin(const std::string &searchPath, const std::string &pluginName)
     return false;
 }
 
-bool loadPlugin(const std::string &searchPath, const std::string &pluginName)
+bool GX_API_CALL loadPlugin(const std::string &searchPath, const std::string &pluginName)
 {
     if (!fileExists(searchPath)) {
         std::cerr << "loadPlugin, plugin dir " << searchPath << " not exists." << std::endl;
@@ -277,7 +277,7 @@ bool loadPlugin(const std::string &searchPath, const std::string &pluginName)
     return false;
 }
 
-bool loadPlugin(const std::string &pluginName)
+bool GX_API_CALL loadPlugin(const std::string &pluginName)
 {
     const auto &searchPaths = getPluginSearchPaths();
     for (auto it = searchPaths.rbegin(); it != searchPaths.rend(); it++) {
@@ -1058,8 +1058,6 @@ REGISTER_GANY_MODULE(Builtin)
             })
             .func(MetaFunction::GetItem, &GAnyEnvObject::get)
             .func("contains", &GAnyEnvObject::contains)
-            .func("privateSet", &GAnyEnvObject::set)
-            .func("privateDel", &GAnyEnvObject::erase)
             .func("forEach", [](GAnyEnvObject &self, const GAny &func) {
                 // func: function(const std::string &key, const GAny &value)->bool
                 GLockerGuard locker(self.lock);
@@ -1078,7 +1076,7 @@ REGISTER_GANY_MODULE(Builtin)
     REF_ENUM(MetaFunction, "", "GAny Enum MetaFunction.");
 
     auto AnyClass = GAnyClass::Class("", "AnyClass", "Class Registration Tool.");
-    GAnyClass::registerToEnv(AnyClass);
+    GAny::Export(AnyClass);
     AnyClass->staticFunc(
                     MetaFunction::Init,
                     [](GAny &self,
@@ -1149,15 +1147,14 @@ REGISTER_GANY_MODULE(Builtin)
                     self["clazz"].as<GAnyClass>().inherit(parent["clazz"]);
                 }
                 return self;
-            })
-            .staticFunc("registerToEnv", &GAnyClass::registerToEnv);
+            });
 
     refGString();
 }
 
 #include "gany_pfn_impl.h"
 
-void initGAnyCore()
+void GX_API_CALL initGAnyCore()
 {
     using namespace gx;
     RegisterBuiltin(GANY_VERSION_CODE, ganyGetEnvImpl, ganyParseJsonImpl, ganyRegisterToEnvImpl, ganyClassInstanceImpl);

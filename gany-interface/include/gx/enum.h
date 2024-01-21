@@ -289,8 +289,8 @@
     DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
 
-#define DEF_ENUM_1(NAME, BASE_VAL, T0) \
-    enum class NAME { T0 = BASE_VAL }; \
+#define DEF_ENUM_1(NAME, BASE_TYPE, BASE_VAL, T0) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL }; \
     constexpr int32_t Enum##NAME##Count = 1; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -305,10 +305,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_2(NAME, BASE_VAL, T0, T1) \
-    enum class NAME { T0 = BASE_VAL, T1 }; \
+#define DEF_ENUM_2(NAME, BASE_TYPE, BASE_VAL, T0, T1) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1 }; \
     constexpr int32_t Enum##NAME##Count = 2; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -323,10 +323,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_3(NAME, BASE_VAL, T0, T1, T2) \
-    enum class NAME { T0 = BASE_VAL, T1, T2 }; \
+#define DEF_ENUM_3(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2 }; \
     constexpr int32_t Enum##NAME##Count = 3; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -341,10 +341,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_4(NAME, BASE_VAL, T0, T1, T2, T3) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3 }; \
+#define DEF_ENUM_4(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3 }; \
     constexpr int32_t Enum##NAME##Count = 4; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -359,10 +359,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_5(NAME, BASE_VAL, T0, T1, T2, T3, T4) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4 }; \
+#define DEF_ENUM_5(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4 }; \
     constexpr int32_t Enum##NAME##Count = 5; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -377,10 +377,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_6(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5 }; \
+#define DEF_ENUM_6(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5 }; \
     constexpr int32_t Enum##NAME##Count = 6; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -395,10 +395,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_7(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6 }; \
+#define DEF_ENUM_7(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6 }; \
     constexpr int32_t Enum##NAME##Count = 7; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -413,10 +413,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_8(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7 }; \
+#define DEF_ENUM_8(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7 }; \
     constexpr int32_t Enum##NAME##Count = 8; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -431,10 +431,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_9(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8 }; \
+#define DEF_ENUM_9(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8 }; \
     constexpr int32_t Enum##NAME##Count = 9; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -449,10 +449,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_10(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9 }; \
+#define DEF_ENUM_10(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9 }; \
     constexpr int32_t Enum##NAME##Count = 10; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -467,10 +467,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_11(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 }; \
+#define DEF_ENUM_11(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 }; \
     constexpr int32_t Enum##NAME##Count = 11; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -485,10 +485,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_12(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 }; \
+#define DEF_ENUM_12(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 }; \
     constexpr int32_t Enum##NAME##Count = 12; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -503,10 +503,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_13(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 }; \
+#define DEF_ENUM_13(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 }; \
     constexpr int32_t Enum##NAME##Count = 13; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -521,10 +521,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_14(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 }; \
+#define DEF_ENUM_14(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 }; \
     constexpr int32_t Enum##NAME##Count = 14; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -539,10 +539,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_15(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 }; \
+#define DEF_ENUM_15(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 }; \
     constexpr int32_t Enum##NAME##Count = 15; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -557,10 +557,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_16(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 }; \
+#define DEF_ENUM_16(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 }; \
     constexpr int32_t Enum##NAME##Count = 16; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -575,10 +575,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_17(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16 }; \
+#define DEF_ENUM_17(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16 }; \
     constexpr int32_t Enum##NAME##Count = 17; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -593,10 +593,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_18(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17 }; \
+#define DEF_ENUM_18(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17 }; \
     constexpr int32_t Enum##NAME##Count = 18; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -611,10 +611,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_19(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18 }; \
+#define DEF_ENUM_19(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18 }; \
     constexpr int32_t Enum##NAME##Count = 19; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -629,10 +629,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_20(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19 }; \
+#define DEF_ENUM_20(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19 }; \
     constexpr int32_t Enum##NAME##Count = 20; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -647,10 +647,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_21(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20 }; \
+#define DEF_ENUM_21(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20 }; \
     constexpr int32_t Enum##NAME##Count = 21; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -665,10 +665,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_22(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21 }; \
+#define DEF_ENUM_22(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21 }; \
     constexpr int32_t Enum##NAME##Count = 22; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -683,10 +683,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_23(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22 }; \
+#define DEF_ENUM_23(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22 }; \
     constexpr int32_t Enum##NAME##Count = 23; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -701,10 +701,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_24(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23 }; \
+#define DEF_ENUM_24(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23 }; \
     constexpr int32_t Enum##NAME##Count = 24; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -719,10 +719,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_25(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24 }; \
+#define DEF_ENUM_25(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24 }; \
     constexpr int32_t Enum##NAME##Count = 25; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -737,10 +737,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_26(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25 }; \
+#define DEF_ENUM_26(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25 }; \
     constexpr int32_t Enum##NAME##Count = 26; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -755,10 +755,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_27(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26 }; \
+#define DEF_ENUM_27(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26 }; \
     constexpr int32_t Enum##NAME##Count = 27; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -773,10 +773,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_28(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27 }; \
+#define DEF_ENUM_28(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27 }; \
     constexpr int32_t Enum##NAME##Count = 28; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -791,10 +791,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_29(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28 }; \
+#define DEF_ENUM_29(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28 }; \
     constexpr int32_t Enum##NAME##Count = 29; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -809,10 +809,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_30(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29 }; \
+#define DEF_ENUM_30(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29 }; \
     constexpr int32_t Enum##NAME##Count = 30; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -827,10 +827,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_31(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30 }; \
+#define DEF_ENUM_31(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30 }; \
     constexpr int32_t Enum##NAME##Count = 31; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -845,10 +845,10 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
-#define DEF_ENUM_32(NAME, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31) \
-    enum class NAME { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31 }; \
+#define DEF_ENUM_32(NAME, BASE_TYPE, BASE_VAL, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31) \
+    enum class NAME : BASE_TYPE { T0 = BASE_VAL, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31 }; \
     constexpr int32_t Enum##NAME##Count = 32; \
     static inline const char **Enum##NAME##Strs() \
     { \
@@ -863,6 +863,6 @@
     static inline const char *EnumToString(NAME e) { \
         return Enum##NAME##Strs()[(size_t)((int32_t)e - BASE_VAL)]; \
     } \
-    DEF_ENUM_OPERATORS(NAME, int32_t)
+    DEF_ENUM_OPERATORS(NAME, BASE_TYPE)
 
 #endif //GX_ENUM_H

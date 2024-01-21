@@ -71,10 +71,10 @@
 
 #define GX_UNUSED(x) (void)x
 
-#if __has_attribute(noinline)
-#   define GX_NOINLINE __attribute__((noinline))
-#else
+#if GX_COMPILER_MSVC
 #   define GX_NOINLINE
+#elif __has_attribute(noinline)
+#   define GX_NOINLINE __attribute__((noinline))
 #endif
 
 #if GX_COMPILER_MSVC

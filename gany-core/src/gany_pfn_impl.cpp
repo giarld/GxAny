@@ -25,6 +25,10 @@
 #include "gany_env_object.h"
 #include "gx/sstring.h"
 
+#ifdef GetObject
+    #undef GetObject
+#endif
+
 #include <rapidjson/document.h>
 
 
@@ -33,11 +37,6 @@ GX_NS_BEGIN
 GAny &getEnv()
 {
     static GAny _env = std::make_unique<GAnyEnvObject>();
-    auto &env = _env.as<GAnyEnvObject>();
-    if (!env.contains("_user")) {
-        GAny userData = GAny::object();
-        env.set("_user", userData);
-    }
     return _env;
 }
 
@@ -46,7 +45,7 @@ GAnyEnvObject &getEnvObject()
     return getEnv().as<GAnyEnvObject>();
 }
 
-void *ganyGetEnvImpl()
+void *GX_API_CALL ganyGetEnvImpl()
 {
     return &getEnv();
 }
@@ -106,7 +105,7 @@ static GAny _parseJson(const rapidjson::Value &v)
 }
 
 
-void ganyParseJsonImpl(const char *jsonStr, void *ret)
+void GX_API_CALL ganyParseJsonImpl(const char *jsonStr, void *ret)
 {
     using namespace rapidjson;
 
@@ -120,29 +119,33 @@ void ganyParseJsonImpl(const char *jsonStr, void *ret)
     retObj = GAny::object();
 }
 
-void ganyRegisterToEnvImpl(void *clazz)
+void GX_API_CALL ganyRegisterToEnvImpl(void *v)
 {
-    std::shared_ptr<GAnyClass> clazzPtr = *reinterpret_cast<std::shared_ptr<GAnyClass> *>(clazz);
-    if (clazzPtr->getName().empty()) {
+    GAny classObj = *reinterpret_cast<GAny *>(v);
+    if (!classObj.isClass()) {
+        return;
+    }
+    GAnyClass &clazz = classObj.as<GAnyClass>();
+    if (clazz.getName().empty()) {
         return;
     }
     auto &env = getEnvObject();
-    if (clazzPtr->getNameSpace().empty()) {
-        if (!env.contains(clazzPtr->getName())) {
-            env.set(clazzPtr->getName(), clazzPtr);
+    if (clazz.getNameSpace().empty()) {
+        if (!env.contains(clazz.getName())) {
+            env.set(clazz.getName(), classObj);
         }
     } else {
-        if (!env.contains(clazzPtr->getNameSpace())) {
-            env.set(clazzPtr->getNameSpace(), std::make_shared<GAnyEnvObject>());
+        if (!env.contains(clazz.getNameSpace())) {
+            env.set(clazz.getNameSpace(), std::make_shared<GAnyEnvObject>());
         }
-        auto &ns = env.get(clazzPtr->getNameSpace()).as<GAnyEnvObject>();
-        if (!ns.contains(clazzPtr->getName())) {
-            ns.set(clazzPtr->getName(), clazzPtr);
+        auto &ns = env.get(clazz.getNameSpace()).as<GAnyEnvObject>();
+        if (!ns.contains(clazz.getName())) {
+            ns.set(clazz.getName(), classObj);
         }
     }
 }
 
-void ganyClassInstanceImpl(void *typeInfo, void *ret)
+void GX_API_CALL ganyClassInstanceImpl(void *typeInfo, void *ret)
 {
     static GSpinLock lock;
     static std::unordered_map<StaticString, std::shared_ptr<GAnyClass>> clsMap;

@@ -49,10 +49,8 @@ public:
 
     GAnyClass *classObject() const override
     {
-        if (clazz) {
-            return clazz;
-        }
-        return clazz = GAnyClass::instance<GAnyEnvObject>().get();
+        static GAnyClass *clazz = nullptr;
+        return clazz ? clazz : clazz = GAnyClass::instance<GAnyEnvObject>().get();
     }
 
     GAny get(const std::string &key)
